@@ -9,6 +9,9 @@
   },
   "context7": {
     "command": "npx",
-    "args": ["-y", "@upstash/context7-mcp", "--api-key", "ctx7sk-71e3f070-05ad-4bd1-84fb-ae68f93fa43b"]
+    "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_CONTEXT7_API_KEY_HERE"]
+  },
+  "sentry": {
+    "url": "https://mcp.sentry.dev/mcp"
   }
 }
