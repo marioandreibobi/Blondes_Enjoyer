@@ -5,8 +5,9 @@ import { parseFile, resolveImports } from "@/lib/parser";
 import { buildGraph } from "@/lib/graph-builder";
 import { analyzeWithAI } from "@/lib/ai/analyze";
 import type { AnalysisResult, AnalyzeResponse, ParsedFile } from "@/types";
+import type { PrismaClient } from "@prisma/client";
 
-let prisma: ReturnType<typeof import("@/lib/db")["prisma"]> | null = null;
+let prisma: PrismaClient | null = null;
 if (process.env.DATABASE_URL) {
   try {
     prisma = require("@/lib/db").prisma;
@@ -169,7 +170,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(response);
   } catch (err) {
     console.error("Analysis failed:", err);
+    const status = (err as { status?: number }).status;
     const code = (err as { code?: string }).code;
+
+    if (status === 404) {
+      return NextResponse.json(
+        { error: "Repository not found. Check the URL and try again." },
+        { status: 404 }
+      );
+    }
+
+    if (status === 403) {
+      return NextResponse.json(
+        { error: "GitHub API rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const message =
       code === "concurrency_limit_exceeded"
         ? "AI service is busy. Please wait a moment and try again."

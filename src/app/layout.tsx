@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: "CodeAtlas - Interactive Codebase Visualization",
   description:
     "Paste a GitHub repo URL and explore its structure as an interactive 3D graph with AI-powered insights.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

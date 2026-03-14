@@ -14,22 +14,30 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
       initial={{ opacity: 0, y: -12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 z-50 bg-glass border-b border-glass"
+      className="fixed top-0 left-0 right-0 z-50"
+      style={{
+        background: "rgba(10,14,39,0.92)",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        backdropFilter: "blur(16px)",
+      }}
     >
       <div className="container mx-auto flex items-center justify-between h-14 px-4">
         <a href="/" className="flex items-center gap-2 group">
-          <Hexagon className="h-5 w-5 text-primary transition-brand group-hover:glow-primary" />
-          <span className="text-lg font-bold text-foreground tracking-tight">
-            Code<span className="text-gradient-primary">Atlas</span>
+          <Hexagon className="h-5 w-5 transition-all" style={{ color: "#6366f1" }} />
+          <span className="text-lg font-bold tracking-tight" style={{ color: "#e2e8f0" }}>
+            Code<span style={{ color: "#6366f1" }}>Atlas</span>
           </span>
         </a>
 
         <div className="hidden sm:flex items-center gap-6">
-          <a href="#process" className="text-sm text-muted-foreground hover:text-foreground transition-brand">
+          <a href="#process" className="text-sm transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
             How it Works
           </a>
-          <a href="#views" className="text-sm text-muted-foreground hover:text-foreground transition-brand">
+          <a href="#views" className="text-sm transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
             Views
+          </a>
+          <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-brand">
+            Pricing
           </a>
           {showCta && (
             <button
@@ -50,7 +58,8 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
                   }, 2000);
                 }
               }}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 glow-primary transition-brand"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-all"
+              style={{ background: "rgba(99,102,241,0.8)", boxShadow: "0 0 12px rgba(99,102,241,0.3)" }}
             >
               Get Started
             </button>
