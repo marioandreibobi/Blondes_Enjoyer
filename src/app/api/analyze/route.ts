@@ -18,8 +18,32 @@ if (process.env.DATABASE_URL) {
 
 const MAX_FILES_TO_ANALYZE = 150;
 
+// In-memory rate limiter for analysis requests
+const analyzeRateLimit = new Map<string, { count: number; firstRequest: number }>();
+const ANALYZE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_ANALYZE_PER_WINDOW = 10;
+
+function checkAnalyzeRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = analyzeRateLimit.get(ip);
+  if (!entry || now - entry.firstRequest > ANALYZE_WINDOW_MS) {
+    analyzeRateLimit.set(ip, { count: 1, firstRequest: now });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= MAX_ANALYZE_PER_WINDOW;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkAnalyzeRateLimit(clientIp)) {
+      return NextResponse.json(
+        { error: "Too many analysis requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { repoUrl } = body;
 

@@ -36,6 +36,15 @@ function getNodeColor(n: GraphNode): string {
   return CATEGORY_COLOR_MAP[n.type] ?? "#64748b";
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export default function ForceGraph(): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<ForceGraphInstance>(null);
@@ -110,7 +119,7 @@ export default function ForceGraph(): React.ReactElement {
         .nodeOpacity(0.9)
         .nodeLabel((node: object) => {
           const n = node as GraphNode;
-          return `${n.id} (${NODE_TYPES[n.type]?.label ?? n.type})`;
+          return `${escapeHtml(n.id)} (${escapeHtml(NODE_TYPES[n.type]?.label ?? n.type)})`;
         })
         .nodeThreeObjectExtend(true)
         .nodeThreeObject((node: object) => {
