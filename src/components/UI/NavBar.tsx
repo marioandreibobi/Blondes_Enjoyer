@@ -39,6 +39,9 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
           <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-brand">
             Pricing
           </a>
+          <a href="/feedback" className="text-sm transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
+            Feedback
+          </a>
           {showCta && (
             <button
               onClick={() => {
