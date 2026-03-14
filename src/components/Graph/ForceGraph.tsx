@@ -4,26 +4,24 @@ import React, { useRef, useEffect, useCallback } from "react";
 import { useGraphStore } from "@/store/graph-store";
 import type { GraphNode } from "@/types";
 
-const NODE_COLORS: Record<string, string> = {
-  route: "#3b82f6",      // blue
-  controller: "#8b5cf6", // violet
-  service: "#10b981",    // emerald
-  model: "#f59e0b",      // amber
-  middleware: "#ef4444",  // red
-  util: "#6b7280",       // gray
-  config: "#64748b",     // slate
-  test: "#06b6d4",       // cyan
-  entry: "#f97316",      // orange
-};
-
-const COMPLEXITY_SIZE: Record<string, number> = {
-  low: 4,
-  medium: 7,
-  high: 12,
+export const NODE_TYPES: Record<string, { color: string; label: string }> = {
+  entry:      { color: "#ff6b6b", label: "Entry point" },
+  route:      { color: "#ffa94d", label: "Route" },
+  controller: { color: "#ffd43b", label: "Controller" },
+  service:    { color: "#69db7c", label: "Service" },
+  middleware: { color: "#748ffc", label: "Middleware" },
+  model:      { color: "#da77f2", label: "Model" },
+  util:       { color: "#868e96", label: "Utility" },
+  config:     { color: "#495057", label: "Config" },
+  test:       { color: "#20c997", label: "Test" },
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ForceGraphInstance = any;
+
+function getNodeColor(n: GraphNode): string {
+  return NODE_TYPES[n.type]?.color ?? "#868e96";
+}
 
 export default function ForceGraph(): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,28 +69,66 @@ export default function ForceGraph(): React.ReactElement {
       graph
         .width(containerRef.current.clientWidth)
         .height(containerRef.current.clientHeight)
-        .nodeColor((node: object) => {
-          const n = node as GraphNode;
-          return NODE_COLORS[n.type] ?? "#6b7280";
-        })
+        .backgroundColor("#0a0a1a")
         .nodeVal((node: object) => {
           const n = node as GraphNode;
-          return COMPLEXITY_SIZE[n.complexity] ?? 4;
+          return Math.max(2, Math.sqrt(n.importedBy + 1) * 3);
         })
+        .nodeColor((node: object) => getNodeColor(node as GraphNode))
+        .nodeOpacity(0.9)
         .nodeLabel((node: object) => {
           const n = node as GraphNode;
-          return `${n.id}\n${n.description || n.type}`;
+          return `${n.id} (${NODE_TYPES[n.type]?.label ?? n.type})`;
         })
-        .linkDirectionalArrowLength(3.5)
-        .linkDirectionalArrowRelPos(1)
-        .linkColor(() => "rgba(255,255,255,0.2)")
+        .linkColor(() => "rgba(255,255,255,0.08)")
+        .linkWidth(0.3)
+        .linkDirectionalParticles(1)
+        .linkDirectionalParticleWidth(0.6)
+        .linkDirectionalParticleSpeed(0.006)
+        .linkDirectionalParticleColor(() => "rgba(255,255,255,0.2)")
         .onNodeClick((node: object) => {
-          selectNode(node as GraphNode);
+          const n = node as GraphNode;
+          selectNode(n);
+
+          // Highlight connected nodes
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data = graph.graphData() as { links: any[] };
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const connected = new Set<string>([n.id]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.links.forEach((l: any) => {
+            const sid = typeof l.source === "object" ? l.source.id : l.source;
+            const tid = typeof l.target === "object" ? l.target.id : l.target;
+            if (sid === n.id) connected.add(tid);
+            if (tid === n.id) connected.add(sid);
+          });
+
+          graph.nodeColor((nd: object) => {
+            const nd2 = nd as GraphNode;
+            return connected.has(nd2.id) ? getNodeColor(nd2) : "rgba(60,60,80,0.2)";
+          });
+          graph.linkColor((l: object) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const lk = l as any;
+            const sid = typeof lk.source === "object" ? lk.source.id : lk.source;
+            const tid = typeof lk.target === "object" ? lk.target.id : lk.target;
+            return sid === n.id || tid === n.id
+              ? "rgba(255,255,255,0.35)"
+              : "rgba(255,255,255,0.02)";
+          });
         })
         .onNodeHover((node: object | null) => {
           hoverNode(node as GraphNode | null);
         })
-        .backgroundColor("#030712");
+        .onBackgroundClick(() => {
+          selectNode(null);
+          graph.nodeColor((nd: object) => getNodeColor(nd as GraphNode));
+          graph.linkColor(() => "rgba(255,255,255,0.08)");
+        });
+
+      // Force configuration
+      graph.d3Force("charge").strength(-120);
+      graph.d3Force("link").distance(40);
 
       const data = getFilteredData();
       graph.graphData(data);
@@ -125,7 +161,8 @@ export default function ForceGraph(): React.ReactElement {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full min-h-[500px] bg-gray-950 rounded-lg overflow-hidden"
+      className="w-full h-full min-h-[500px] rounded-lg overflow-hidden"
+      style={{ background: "#0a0a1a" }}
     />
   );
 }

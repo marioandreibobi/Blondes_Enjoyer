@@ -20,7 +20,14 @@ export default function GraphControls(): React.ReactElement {
   const setComplexityFilter = useGraphStore((s) => s.setComplexityFilter);
 
   return (
-    <div className="flex flex-col gap-3 p-3 rounded-lg bg-card border border-border">
+    <div
+      className="flex flex-col gap-3 p-3 rounded-xl border"
+      style={{
+        background: "rgba(15,15,35,0.92)",
+        borderColor: "rgba(255,255,255,0.1)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
       <div>
         <p className="text-xs font-medium text-muted-foreground mb-1">
           Hide Types

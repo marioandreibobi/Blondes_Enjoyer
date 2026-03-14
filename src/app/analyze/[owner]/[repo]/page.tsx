@@ -100,6 +100,9 @@ export default function AnalyzePage(): React.ReactElement {
               <GraphControls />
               <Legend />
               <OnboardingPanel />
+              <div className="text-[11px] px-1" style={{ color: "#555" }}>
+                Click a node to inspect &middot; Scroll to zoom &middot; Drag to rotate
+              </div>
             </div>
           </div>
 
