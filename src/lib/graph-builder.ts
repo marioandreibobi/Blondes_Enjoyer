@@ -2,16 +2,28 @@ import type { GraphNode, GraphLink, ParsedFile, NodeType, Complexity } from "@/t
 
 function inferNodeType(path: string): NodeType {
   const lower = path.toLowerCase();
+  const fileName = lower.split("/").pop() ?? "";
 
-  if (lower.includes(".test.") || lower.includes(".spec.") || lower.includes("__tests__")) return "test";
-  if (lower.includes("/api/") || lower.includes("route.")) return "route";
+  // Test files: check filename patterns AND directory patterns
+  if (
+    fileName.includes(".test.") ||
+    fileName.includes(".spec.") ||
+    lower.includes("__tests__/") ||
+    lower.includes("/test/") ||
+    lower.includes("/tests/") ||
+    lower.startsWith("test/") ||
+    lower.startsWith("tests/")
+  ) return "test";
+
+  if (lower.includes("/api/") || fileName.startsWith("route.")) return "route";
   if (lower.includes("controller")) return "controller";
-  if (lower.includes("service") || lower.includes("/lib/")) return "service";
+  if (lower.includes("/services/") || fileName.includes("service.")) return "service";
   if (lower.includes("model") || lower.includes("schema") || lower.includes("prisma")) return "model";
   if (lower.includes("middleware")) return "middleware";
-  if (lower.includes("config") || lower.includes(".config.")) return "config";
-  if (lower.includes("util") || lower.includes("helper") || lower.includes("lib/")) return "util";
-  if (lower.match(/index\.(ts|js|tsx|jsx)$/) || lower.includes("app.") || lower.includes("main.")) return "entry";
+  if (lower.includes(".config.") || fileName.startsWith("config.")) return "config";
+  if (fileName.match(/^index\.(ts|js|tsx|jsx)$/) || fileName.startsWith("app.") || fileName.startsWith("main.")) return "entry";
+  if (lower.includes("util") || lower.includes("helper")) return "util";
+  if (lower.includes("/lib/") || lower.startsWith("lib/")) return "service";
 
   return "util";
 }
