@@ -35,12 +35,28 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
             Pricing
           </a>
           {showCta && (
-            <a
-              href="#hero"
+            <button
+              onClick={() => {
+                const motto = document.getElementById("hero-motto");
+                const wrapper = document.getElementById("repo-input-wrapper");
+                const input = document.getElementById("repo-url-input");
+                if (motto) {
+                  motto.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+                if (wrapper) {
+                  wrapper.style.boxShadow = "0 0 0 2px hsl(var(--primary)), 0 0 20px hsl(var(--primary) / 0.35)";
+                  setTimeout(() => {
+                    input?.focus();
+                  }, 600);
+                  setTimeout(() => {
+                    wrapper.style.boxShadow = "";
+                  }, 2000);
+                }
+              }}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 glow-primary transition-brand"
             >
               Get Started
-            </a>
+            </button>
           )}
         </div>
       </div>

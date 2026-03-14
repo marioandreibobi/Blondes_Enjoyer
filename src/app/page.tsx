@@ -6,6 +6,7 @@ import ProcessTimeline from "@/components/UI/ProcessTimeline";
 import ViewsGrid from "@/components/UI/ViewsGrid";
 import PricingPlans from "@/components/UI/PricingPlans";
 import Footer from "@/components/UI/Footer";
+import ScrollToTop from "@/components/UI/ScrollToTop";
 
 export default function HomePage(): React.ReactElement {
   return (
@@ -19,6 +20,7 @@ export default function HomePage(): React.ReactElement {
         <PricingPlans />
       </main>
       <Footer />
+      <ScrollToTop />
     </>
   );
 }
