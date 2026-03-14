@@ -110,7 +110,10 @@ export default function ForceGraph(): React.ReactElement {
         .nodeOpacity(0.9)
         .nodeLabel((node: object) => {
           const n = node as GraphNode;
-          return `${n.id} (${NODE_TYPES[n.type]?.label ?? n.type})`;
+          // Escape HTML to prevent XSS from malicious file names
+          const safe = (s: string): string =>
+            s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+          return `${safe(n.id)} (${safe(NODE_TYPES[n.type]?.label ?? n.type)})`;
         })
         .nodeThreeObjectExtend(true)
         .nodeThreeObject((node: object) => {

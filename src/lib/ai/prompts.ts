@@ -55,3 +55,60 @@ Rules:
 - onboarding steps should guide a new developer through the codebase in logical order. Include 4-8 steps.
 - Return ONLY valid JSON, no markdown fences, no explanation outside the JSON.`;
 }
+
+export function buildSecurityFocusedPrompt(
+  repoName: string,
+  nodes: GraphNode[],
+  links: GraphLink[]
+): string {
+  const nodesSummary = nodes
+    .map(
+      (n) =>
+        `- ${n.id} (${n.type}, ${n.lines} lines, ${n.imports} imports, ${n.importedBy} imported-by, complexity: ${n.complexity})`
+    )
+    .join("\n");
+
+  const linksSummary = links
+    .slice(0, 200)
+    .map((l) => `  ${l.source} \u2192 ${l.target}`)
+    .join("\n");
+
+  return `You are a senior security engineer analyzing the repository "${repoName}".
+Focus on security vulnerabilities, attack surface, data flow risks, and dependency dangers.
+
+Here are the files (nodes) in the dependency graph:
+${nodesSummary}
+
+Here are the import relationships (links):
+${linksSummary}
+
+Provide your analysis as a JSON object with this exact structure:
+{
+  "summary": "A 2-3 sentence security-focused overview of the repository. Highlight the main attack surface and trust boundaries.",
+  "fileDescriptions": {
+    "<file_path>": "One-sentence security-relevant description of this file."
+  },
+  "riskHotspots": [
+    {
+      "file": "<file_path>",
+      "reason": "Security-focused reason why this file is risky (e.g. handles user input, auth, crypto, network).",
+      "severity": "low" | "medium" | "high"
+    }
+  ],
+  "onboarding": {
+    "steps": [
+      {
+        "title": "Step title",
+        "file": "<file_path or array of file paths>",
+        "explanation": "Security-focused explanation: what to audit and why."
+      }
+    ]
+  }
+}
+
+Rules:
+- fileDescriptions must include every file from the node list above.
+- riskHotspots should prioritize: input handling, authentication, authorization, data exposure, injection points, secrets management. Include 5-10 hotspots.
+- onboarding steps should guide a security reviewer through the codebase in order of risk. Include 4-8 steps.
+- Return ONLY valid JSON, no markdown fences, no explanation outside the JSON.`;
+}
