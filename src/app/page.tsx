@@ -5,6 +5,7 @@ import HeroSection from "@/components/UI/HeroSection";
 import ProcessTimeline from "@/components/UI/ProcessTimeline";
 import ViewsGrid from "@/components/UI/ViewsGrid";
 import Footer from "@/components/UI/Footer";
+import ScrollToTop from "@/components/UI/ScrollToTop";
 
 export default function HomePage(): React.ReactElement {
   return (
@@ -17,6 +18,7 @@ export default function HomePage(): React.ReactElement {
         <ViewsGrid />
       </main>
       <Footer />
+      <ScrollToTop />
     </>
   );
 }
