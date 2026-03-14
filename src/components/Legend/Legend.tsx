@@ -3,11 +3,11 @@
 import React from "react";
 
 const CATEGORY_ITEMS = [
-  { color: "#22c55e", label: "Core" },
-  { color: "#a855f7", label: "Services" },
-  { color: "#06b6d4", label: "Utilities" },
+  { color: "#3b82f6", label: "Core" },
+  { color: "#22c55e", label: "Services" },
+  { color: "#facc15", label: "UI" },
   { color: "#ec4899", label: "QA" },
-  { color: "#3b82f6", label: "Configuration" },
+  { color: "#f97316", label: "Config" },
 ];
 
 const RISK_ITEMS = [

@@ -17,6 +17,24 @@ if (process.env.DATABASE_URL) {
 }
 
 const MAX_FILES_TO_ANALYZE = 150;
+const GITHUB_CALL_TIMEOUT_MS = 25000;
+const AI_CALL_TIMEOUT_MS = 90000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeoutHandle: NodeJS.Timeout | null = null;
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -69,7 +87,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Fetch repo tree
-    const tree = await fetchRepoTree(owner, repo);
+    const tree = await withTimeout(
+      fetchRepoTree(owner, repo),
+      GITHUB_CALL_TIMEOUT_MS,
+      "Fetching repository tree"
+    );
     const analyzableFiles = tree.filter(
       (item) => item.type === "blob" && isAnalyzableFile(item.path)
     );
@@ -84,7 +106,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const batch = filesToAnalyze.slice(i, i + batchSize);
       const results = await Promise.allSettled(
         batch.map(async (item) => {
-          const content = await fetchFileContent(owner, repo, item.path);
+          const content = await withTimeout(
+            fetchFileContent(owner, repo, item.path),
+            GITHUB_CALL_TIMEOUT_MS,
+            `Fetching file ${item.path}`
+          );
           return parseFile(item.path, content);
         })
       );
@@ -101,17 +127,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const graph = buildGraph(parsedFiles, resolvedImports);
 
     // AI analysis
-    const language = await fetchRepoLanguage(owner, repo);
+    const language = await withTimeout(
+      fetchRepoLanguage(owner, repo),
+      GITHUB_CALL_TIMEOUT_MS,
+      "Fetching repository language"
+    );
     let ai: AnalysisResult["ai"] = {
       summary: "",
       riskHotspots: [],
       onboarding: { steps: [] },
     };
     try {
-      const aiResult = await analyzeWithAI(
-        `${owner}/${repo}`,
-        graph.nodes,
-        graph.links
+      const aiResult = await withTimeout(
+        analyzeWithAI(
+          `${owner}/${repo}`,
+          graph.nodes,
+          graph.links
+        ),
+        AI_CALL_TIMEOUT_MS,
+        "AI analysis"
       );
       ai = aiResult.ai;
 

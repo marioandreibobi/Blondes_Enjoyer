@@ -60,10 +60,21 @@ export function buildGraph(
     };
   });
 
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+
   const links: GraphLink[] = [];
   Array.from(resolvedImports.entries()).forEach(([source, targets]) => {
     targets.forEach((target) => {
-      links.push({ source, target });
+      const sourceNode = nodeById.get(source);
+      const targetNode = nodeById.get(target);
+      const sourceSignal = sourceNode ? sourceNode.imports + 1 : 1;
+      const targetSignal = targetNode ? targetNode.importedBy + 1 : 1;
+
+      links.push({
+        source,
+        target,
+        strength: Math.max(1, Math.round((sourceSignal + targetSignal) / 2)),
+      });
     });
   });
 

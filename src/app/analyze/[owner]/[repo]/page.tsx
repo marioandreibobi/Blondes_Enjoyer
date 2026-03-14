@@ -6,30 +6,31 @@ import { motion } from "framer-motion";
 import { useGraphStore } from "@/store/graph-store";
 import ForceGraph from "@/components/Graph/ForceGraph";
 import DiagramView from "@/components/Graph/DiagramView";
-import NodeTooltip from "@/components/Graph/NodeTooltip";
+import ViewSwitcher from "@/components/UI/ViewSwitcher";
 import AnalysisPanel from "@/components/UI/AnalysisPanel";
-import Legend from "@/components/Legend/Legend";
 import LoadingState from "@/components/UI/LoadingState";
 import ErrorBoundary from "@/components/UI/ErrorBoundary";
 import NavBar from "@/components/UI/NavBar";
-import ViewSwitcher from "@/components/UI/ViewSwitcher";
 import ChatPanel from "@/components/Chat/ChatPanel";
 import type { AnalyzeResponse } from "@/types";
 
 export default function AnalyzePage(): React.ReactElement {
   const params = useParams<{ owner: string; repo: string }>();
-  const { setAnalysisResult, setLoading, setError, loading, error, analysisResult, activeView, setActiveView, activeCategory, setActiveCategory } =
+  const { setAnalysisResult, setLoading, setError, loading, error, analysisResult, activeCategory, setActiveCategory, activeView, setActiveView } =
     useGraphStore();
 
   useEffect(() => {
     async function load(): Promise<void> {
       setLoading(true);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000);
 
       try {
         const url = `https://github.com/${params.owner}/${params.repo}`;
         const res = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({ repoUrl: url }),
         });
 
@@ -41,7 +42,13 @@ export default function AnalyzePage(): React.ReactElement {
         const data: AnalyzeResponse = await res.json();
         setAnalysisResult(data.result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
+        if (err instanceof Error && err.name === "AbortError") {
+          setError("Analysis timed out. The repository is large or external services are slow. Please retry.");
+        } else {
+          setError(err instanceof Error ? err.message : "Something went wrong");
+        }
+      } finally {
+        clearTimeout(timeout);
       }
     }
 
@@ -155,48 +162,42 @@ export default function AnalyzePage(): React.ReactElement {
             </span>
           </div>
 
-          {/* Right: view switcher */}
+          {/* Right: view switcher + export */}
           <ViewSwitcher value={activeView} onSwitch={setActiveView} onExport={handleExport} />
         </header>
 
-        {/* ─── Category filter tabs (shared across both views) ─── */}
-        {activeView === "3d" && (
-          <div
-            className="flex items-center gap-1 px-5 py-2"
-            style={{ background: "rgba(10,14,39,0.9)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-          >
-            {CATEGORY_TABS.map((tab) => {
-              const isActive = (activeCategory ?? "all") === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveCategory(tab.id === "all" ? null : tab.id)}
-                  className="px-3 py-1 rounded-full text-xs font-mono transition-all"
-                  style={
-                    isActive
-                      ? { background: "rgba(99,102,241,0.8)", color: "#fff" }
-                      : { background: "transparent", color: "rgba(255,255,255,0.45)" }
-                  }
-                >
-                  {tab.name}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* ─── Category filter tabs ─── */}
+        <div
+          className="flex items-center gap-1 px-5 py-2"
+          style={{ background: "rgba(10,14,39,0.9)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+        >
+          {CATEGORY_TABS.map((tab) => {
+            const isActive = (activeCategory ?? "all") === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveCategory(tab.id === "all" ? null : tab.id)}
+                className="px-3 py-1 rounded-full text-xs font-mono transition-all"
+                style={
+                  isActive
+                    ? { background: "rgba(99,102,241,0.8)", color: "#fff" }
+                    : { background: "transparent", color: "rgba(255,255,255,0.45)" }
+                }
+              >
+                {tab.name}
+              </button>
+            );
+          })}
+        </div>
 
         {/* ─── Body ─── */}
         <div className="flex-1 flex overflow-hidden">
           {/* Main content area */}
           <div className="flex-1 relative overflow-hidden">
-            {activeView === "3d" ? (
-              <>
-                <ForceGraph />
-                <NodeTooltip />
-                <Legend />
-              </>
-            ) : (
+            {activeView === "diagram" ? (
               <DiagramView />
+            ) : (
+              <ForceGraph />
             )}
           </div>
 
