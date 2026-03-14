@@ -25,6 +25,7 @@ interface GraphState {
   selectNode: (node: GraphNode | null) => void;
   hoverNode: (node: GraphNode | null) => void;
   toggleTypeFilter: (type: NodeType) => void;
+  setTypeFilters: (types: Set<NodeType>) => void;
   setComplexityFilter: (filter: "all" | "low" | "medium" | "high") => void;
   toggleSidebar: () => void;
   setLoading: (loading: boolean) => void;
@@ -66,6 +67,8 @@ export const useGraphStore = create<GraphState>((set) => ({
       }
       return { typeFilters: next };
     }),
+
+  setTypeFilters: (types) => set({ typeFilters: new Set(types) }),
 
   setComplexityFilter: (filter) => set({ complexityFilter: filter }),
 

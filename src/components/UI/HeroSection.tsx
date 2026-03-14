@@ -87,6 +87,7 @@ export default function HeroSection(): React.ReactElement {
             </motion.div>
 
             <motion.h1
+              id="hero-motto"
               variants={fadeUp}
               className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1]"
             >
@@ -109,12 +110,13 @@ export default function HeroSection(): React.ReactElement {
               onSubmit={handleSubmit}
               className="w-full max-w-lg"
             >
-              <div className="flex items-center gap-2 rounded-xl bg-glass border-glass shadow-blueprint p-1.5">
+              <div id="repo-input-wrapper" className="flex items-center gap-2 rounded-xl bg-glass border-glass shadow-blueprint p-1.5 transition-all duration-500">
                 <div className="flex items-center gap-2 pl-3 text-muted-foreground">
                   <Terminal className="h-4 w-4" />
                   <span className="text-xs font-mono hidden sm:inline">~/repo $</span>
                 </div>
                 <input
+                  id="repo-url-input"
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}

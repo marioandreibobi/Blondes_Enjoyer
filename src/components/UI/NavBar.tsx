@@ -37,13 +37,29 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
             Views
           </a>
           {showCta && (
-            <a
-              href="#hero"
+            <button
+              onClick={() => {
+                const motto = document.getElementById("hero-motto");
+                const wrapper = document.getElementById("repo-input-wrapper");
+                const input = document.getElementById("repo-url-input");
+                if (motto) {
+                  motto.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+                if (wrapper) {
+                  wrapper.style.boxShadow = "0 0 0 2px hsl(var(--primary)), 0 0 20px hsl(var(--primary) / 0.35)";
+                  setTimeout(() => {
+                    input?.focus();
+                  }, 600);
+                  setTimeout(() => {
+                    wrapper.style.boxShadow = "";
+                  }, 2000);
+                }
+              }}
               className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-all"
               style={{ background: "rgba(99,102,241,0.8)", boxShadow: "0 0 12px rgba(99,102,241,0.3)" }}
             >
               Get Started
-            </a>
+            </button>
           )}
         </div>
       </div>
