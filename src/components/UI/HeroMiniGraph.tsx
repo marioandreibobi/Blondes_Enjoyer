@@ -1,18 +1,37 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
+import ForceGraphFactory from "force-graph";
+
+type HeroNode = { id: string; type: string; x?: number; y?: number };
+type HeroLink = { source: string; target: string };
+
+interface HeroMiniGraphInstance {
+  width: (value: number) => HeroMiniGraphInstance;
+  height: (value: number) => HeroMiniGraphInstance;
+  backgroundColor: (value: string) => HeroMiniGraphInstance;
+  graphData: (value: { nodes: HeroNode[]; links: HeroLink[] }) => HeroMiniGraphInstance;
+  nodeColor: (fn: (node: HeroNode) => string) => HeroMiniGraphInstance;
+  nodeVal: (fn: (node: HeroNode) => number) => HeroMiniGraphInstance;
+  nodeCanvasObject: (fn: (node: HeroNode, ctx: CanvasRenderingContext2D) => void) => HeroMiniGraphInstance;
+  linkColor: (fn: () => string) => HeroMiniGraphInstance;
+  linkWidth: (value: number) => HeroMiniGraphInstance;
+  enableNodeDrag: (value: boolean) => HeroMiniGraphInstance;
+  zoom: (value: number, durationMs?: number) => HeroMiniGraphInstance;
+  _destructor?: () => void;
+}
 
 const SAMPLE_NODES = [
-  { id: "app", type: "entry", x: 0, y: 0, z: 0 },
-  { id: "router", type: "route", x: 30, y: 20, z: -10 },
-  { id: "auth", type: "middleware", x: -20, y: -15, z: 25 },
-  { id: "users", type: "service", x: 40, y: -30, z: 15 },
-  { id: "db", type: "model", x: -35, y: 25, z: -20 },
-  { id: "utils", type: "util", x: 15, y: 35, z: 30 },
-  { id: "config", type: "config", x: -25, y: -35, z: -25 },
-  { id: "test", type: "test", x: 45, y: 10, z: -30 },
-  { id: "ctrl", type: "controller", x: -40, y: -5, z: 10 },
-  { id: "api", type: "route", x: 20, y: -20, z: -35 },
+  { id: "app", type: "entry" },
+  { id: "router", type: "route" },
+  { id: "auth", type: "middleware" },
+  { id: "users", type: "service" },
+  { id: "db", type: "model" },
+  { id: "utils", type: "util" },
+  { id: "config", type: "config" },
+  { id: "test", type: "test" },
+  { id: "ctrl", type: "controller" },
+  { id: "api", type: "route" },
 ];
 
 const SAMPLE_LINKS = [
@@ -40,52 +59,43 @@ export default function HeroMiniGraph(): React.ReactElement {
   useEffect(() => {
     if (!mounted || !containerRef.current || typeof window === "undefined") return;
 
-    let destroyed = false;
+    const graph = (
+      ForceGraphFactory as unknown as () => (element: HTMLElement) => HeroMiniGraphInstance
+    )()(containerRef.current);
 
-    import("3d-force-graph").then((mod) => {
-      if (destroyed || !containerRef.current) return;
-      containerRef.current.innerHTML = "";
+    const resize = () => {
+      if (!containerRef.current) return;
+      graph.width(containerRef.current.clientWidth);
+      graph.height(containerRef.current.clientHeight);
+    };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ForceGraph3D = (mod.default as any)();
-      const graph = ForceGraph3D(containerRef.current);
+    resize();
 
-      const nodes = SAMPLE_NODES.map((n) => ({ ...n }));
-      const links = SAMPLE_LINKS.map((l) => ({ source: l.source, target: l.target }));
+    graph
+      .backgroundColor("rgba(0,0,0,0)")
+      .nodeVal((node) => (node.type === "entry" ? 6 : 4))
+      .nodeColor((node) => NODE_COLORS[node.type] ?? "#868e96")
+      .nodeCanvasObject((node, ctx) => {
+        const label = node.id;
+        ctx.fillStyle = "rgba(226,232,240,0.85)";
+        ctx.font = "8px monospace";
+        ctx.fillText(label, (node.x ?? 0) + 6, (node.y ?? 0) - 6);
+      })
+      .linkColor(() => "rgba(56,120,200,0.28)")
+      .linkWidth(0.8)
+      .enableNodeDrag(false)
+      .graphData({
+        nodes: SAMPLE_NODES.map((n) => ({ ...n })),
+        links: SAMPLE_LINKS.map((l) => ({ source: l.source, target: l.target })),
+      });
 
-      graph
-        .width(containerRef.current.clientWidth)
-        .height(containerRef.current.clientHeight)
-        .backgroundColor("rgba(0,0,0,0)")
-        .nodeVal(3)
-        .nodeColor((node: object) => {
-          const n = node as (typeof SAMPLE_NODES)[0];
-          return NODE_COLORS[n.type] ?? "#868e96";
-        })
-        .nodeOpacity(0.85)
-        .linkColor(() => "rgba(56,120,200,0.15)")
-        .linkWidth(0.4)
-        .enableNodeDrag(false)
-        .enableNavigationControls(false)
-        .showNavInfo(false)
-        .graphData({ nodes, links });
+    graph.zoom(2.3, 0);
 
-      // Auto-rotate
-      let angle = 0;
-      const dist = 120;
-      function rotate(): void {
-        if (destroyed) return;
-        angle += 0.003;
-        graph.cameraPosition({
-          x: dist * Math.sin(angle),
-          z: dist * Math.cos(angle),
-        });
-        requestAnimationFrame(rotate);
-      }
-      rotate();
-    });
-
-    return () => { destroyed = true; };
+    window.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      graph._destructor?.();
+    };
   }, [mounted]);
 
   return (

@@ -45,7 +45,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    const session = await getStripe().checkout.sessions.create({
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [
         {

@@ -28,6 +28,7 @@ export interface GraphNode {
 export interface GraphLink {
   source: string; // file path
   target: string; // file path
+  strength?: number; // relationship weight for visual thickness/color
 }
 
 // ─── AI Analysis ──────────────────────────────────────────────
@@ -73,13 +74,17 @@ export interface AnalysisResult {
 
 // ─── API Request / Response ───────────────────────────────────
 
+export type AIApproach = "architecture" | "security";
+
 export interface AnalyzeRequest {
   repoUrl: string;
+  dualMode?: boolean;
 }
 
 export interface AnalyzeResponse {
   id: string;
   result: AnalysisResult;
+  resultB?: AnalysisResult;
 }
 
 export interface ApiError {

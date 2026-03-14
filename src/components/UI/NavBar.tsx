@@ -128,6 +128,7 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
                 </div>
               )}
             </>
+
           )}
         </div>
       </div>

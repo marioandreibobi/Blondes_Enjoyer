@@ -80,14 +80,6 @@ function complexityToNumber(c: string): number {
   return 25;
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 // ─── Canvas node type ─────────────────────────────────────────
 
@@ -272,7 +264,7 @@ export default function ForceGraph(): React.ReactElement {
         ctx.font = "bold 10px monospace";
         ctx.fillStyle = isHovered || isSelected ? "#e2e8f0" : colors.text + "aa";
         ctx.textAlign = "center";
-        ctx.fillText(node.name.replace(/\.tsx?|js|py|mjs|ts$/, ""), node.x, node.y + radius + 14);
+        ctx.fillText(node.name.replace(/\.(tsx?|js|py|mjs|ts)$/, ""), node.x, node.y + radius + 14);
       }
     }
   }, [nodes, edges, hoveredNode, selectedNode, filterCategory]);
@@ -524,7 +516,7 @@ export default function ForceGraph(): React.ReactElement {
               className="font-mono text-xs font-bold"
               style={{ color: NODE_COLORS[selectedNode.category].text }}
             >
-              {escapeHtml(selectedNode.name)}
+              {selectedNode.name}
             </span>
             <button
               onClick={() => {
@@ -598,7 +590,7 @@ export default function ForceGraph(): React.ReactElement {
             }}
           >
             <span style={{ color: NODE_COLORS[hoveredNode.category].text }} className="font-mono font-bold">
-              {escapeHtml(hoveredNode.name)}
+              {hoveredNode.name}
             </span>
             <span className="text-slate-500 ml-2 text-[10px]">{hoveredNode.lines} lines</span>
           </div>
