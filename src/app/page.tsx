@@ -4,6 +4,7 @@ import NavBar from "@/components/UI/NavBar";
 import HeroSection from "@/components/UI/HeroSection";
 import ProcessTimeline from "@/components/UI/ProcessTimeline";
 import ViewsGrid from "@/components/UI/ViewsGrid";
+import PricingPlans from "@/components/UI/PricingPlans";
 import Footer from "@/components/UI/Footer";
 
 export default function HomePage(): React.ReactElement {
@@ -15,6 +16,7 @@ export default function HomePage(): React.ReactElement {
         <HeroSection />
         <ProcessTimeline />
         <ViewsGrid />
+        <PricingPlans />
       </main>
       <Footer />
     </>
