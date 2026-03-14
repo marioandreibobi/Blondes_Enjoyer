@@ -71,6 +71,14 @@ function isRelativeImportJS(importPath: string): boolean {
   return importPath.startsWith("./") || importPath.startsWith("../");
 }
 
+function isAliasImport(importPath: string): boolean {
+  return importPath.startsWith("@/");
+}
+
+function isInternalImportJS(importPath: string): boolean {
+  return isRelativeImportJS(importPath) || isAliasImport(importPath);
+}
+
 function isPythonRelativeImport(importPath: string): boolean {
   return importPath.startsWith(".");
 }
@@ -82,6 +90,36 @@ function isPythonRelativeImport(importPath: string): boolean {
  */
 function stripJsExtension(importPath: string): string {
   return importPath.replace(/\.(js|jsx|mjs|cjs|ts|tsx|mts|cts)$/, "");
+}
+
+/**
+ * Resolve a @/ alias import by trying common base directories.
+ * Most TS/Next.js projects map @/ to src/.
+ */
+function resolveAliasImport(
+  importPath: string,
+  allPaths: Set<string>
+): string | null {
+  // Strip the @/ prefix
+  const stripped = importPath.slice(2);
+  const strippedClean = stripJsExtension(stripped);
+
+  // Try common alias bases: src/, ./ (root), app/
+  const bases = ["src/", "", "app/"];
+  const extensions = ["", ".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx", "/index.js", "/index.jsx"];
+
+  for (const base of bases) {
+    for (const raw of [stripped, strippedClean]) {
+      for (const ext of extensions) {
+        const candidate = base + raw + ext;
+        if (allPaths.has(candidate)) {
+          return candidate;
+        }
+      }
+    }
+  }
+
+  return null;
 }
 
 function resolveRelativeImport(
@@ -194,7 +232,7 @@ export function parseFile(path: string, content: string): ParsedFile {
     filteredImports = rawImports;
   } else {
     rawImports = extractRawImportsJS(content);
-    filteredImports = rawImports.filter(isRelativeImportJS);
+    filteredImports = rawImports.filter(isInternalImportJS);
   }
 
   return {
@@ -217,6 +255,8 @@ export function resolveImports(
       let target: string | null;
       if (isPythonFile(file.path)) {
         target = resolvePythonImport(file.path, imp, allPaths);
+      } else if (isAliasImport(imp)) {
+        target = resolveAliasImport(imp, allPaths);
       } else {
         target = resolveRelativeImport(file.path, imp, allPaths);
       }
