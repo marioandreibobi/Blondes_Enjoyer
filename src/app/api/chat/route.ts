@@ -86,7 +86,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
         stream = await client.chat.completions.create({
-          model: "Qwen/Qwen2-72B-Instruct",
+          model: "gpt-4o-mini",
           max_tokens: 1024,
           stream: true,
           messages,

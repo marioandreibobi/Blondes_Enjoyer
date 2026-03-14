@@ -73,13 +73,17 @@ export interface AnalysisResult {
 
 // ─── API Request / Response ───────────────────────────────────
 
+export type AIApproach = "architecture" | "security";
+
 export interface AnalyzeRequest {
   repoUrl: string;
+  dualMode?: boolean;
 }
 
 export interface AnalyzeResponse {
   id: string;
   result: AnalysisResult;
+  resultB?: AnalysisResult;
 }
 
 export interface ApiError {
