@@ -54,6 +54,11 @@ describe("validateGitHubUrl", () => {
     ).toThrow("Invalid GitHub URL");
   });
 
+  it("accepts URLs with trailing .git", () => {
+    const result = validateGitHubUrl("https://github.com/marioandreibobi/Blondes_Enjoyer.git");
+    expect(result).toEqual({ owner: "marioandreibobi", repo: "Blondes_Enjoyer" });
+  });
+
   it("rejects empty string", () => {
     expect(() => validateGitHubUrl("")).toThrow();
   });

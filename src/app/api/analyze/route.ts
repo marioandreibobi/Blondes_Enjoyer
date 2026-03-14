@@ -137,8 +137,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(response);
   } catch (err) {
     console.error("Analysis failed:", err);
+    const code = (err as { code?: string }).code;
+    const message =
+      code === "concurrency_limit_exceeded"
+        ? "AI service is busy. Please wait a moment and try again."
+        : "Analysis failed. Please try again.";
     return NextResponse.json(
-      { error: "Analysis failed. Please try again." },
+      { error: message },
       { status: 500 }
     );
   }

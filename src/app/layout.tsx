@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const geistSans = Inter({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+});
 
 export const metadata: Metadata = {
   title: "CodeAtlas - Interactive Codebase Visualization",
@@ -18,7 +21,7 @@ export default function RootLayout({
 }): React.ReactElement {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} font-sans antialiased`}>{children}</body>
     </html>
   );
 }
