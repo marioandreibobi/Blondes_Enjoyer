@@ -19,7 +19,7 @@ export function validateGitHubUrl(url: string): ParsedRepo {
     throw new Error("Only HTTPS GitHub URLs are accepted");
   }
 
-  // Block localhost / internal IPs
+  // Block localhost / internal IPs (SSRF protection)
   const lower = trimmed.toLowerCase();
   if (
     lower.includes("localhost") ||
@@ -28,6 +28,13 @@ export function validateGitHubUrl(url: string): ParsedRepo {
     lower.includes("169.254.") ||
     lower.includes("[::1]") ||
     lower.includes("10.") ||
+    lower.includes("172.16.") ||
+    lower.includes("172.17.") ||
+    lower.includes("172.18.") ||
+    lower.includes("172.19.") ||
+    lower.includes("172.2") ||
+    lower.includes("172.30.") ||
+    lower.includes("172.31.") ||
     lower.includes("192.168.")
   ) {
     throw new Error("Internal URLs are not allowed");
