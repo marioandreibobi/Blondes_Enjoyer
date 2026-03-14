@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { useGraphStore } from "@/store/graph-store";
 import ForceGraph from "@/components/Graph/ForceGraph";
 import NodeTooltip from "@/components/Graph/NodeTooltip";
@@ -11,6 +12,8 @@ import Sidebar from "@/components/UI/Sidebar";
 import LoadingState from "@/components/UI/LoadingState";
 import ErrorBoundary from "@/components/UI/ErrorBoundary";
 import OnboardingPanel from "@/components/Onboarding/OnboardingPanel";
+import BlueprintGrid from "@/components/UI/BlueprintGrid";
+import NavBar from "@/components/UI/NavBar";
 import type { AnalyzeResponse } from "@/types";
 
 export default function AnalyzePage(): React.ReactElement {
@@ -47,26 +50,37 @@ export default function AnalyzePage(): React.ReactElement {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <LoadingState />
-      </main>
+      <>
+        <BlueprintGrid />
+        <main className="min-h-screen flex items-center justify-center">
+          <LoadingState />
+        </main>
+      </>
     );
   }
 
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <p className="text-lg font-medium text-destructive">Error</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <a
-            href="/"
-            className="inline-block mt-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+      <>
+        <BlueprintGrid />
+        <main className="min-h-screen flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="text-center space-y-3 rounded-xl bg-glass border-glass shadow-blueprint p-8"
           >
-            Back to Home
-          </a>
-        </div>
-      </main>
+            <p className="text-lg font-medium text-destructive">Error</p>
+            <p className="text-sm text-muted-foreground max-w-sm">{error}</p>
+            <a
+              href="/"
+              className="inline-block mt-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 glow-primary transition-brand"
+            >
+              Back to Home
+            </a>
+          </motion.div>
+        </main>
+      </>
     );
   }
 
@@ -74,15 +88,19 @@ export default function AnalyzePage(): React.ReactElement {
 
   return (
     <ErrorBoundary>
-      <main className="h-screen flex flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
-          <a href="/" className="text-lg font-bold text-foreground">
-            Code<span className="text-primary">Atlas</span>
-          </a>
-          <span className="text-sm text-muted-foreground">
+      <BlueprintGrid />
+      <NavBar showCta={false} />
+      <motion.main
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="h-screen flex flex-col pt-14"
+      >
+        {/* Header bar */}
+        <header className="flex items-center justify-between px-4 py-2 border-b border-glass bg-glass">
+          <span className="text-sm font-mono text-muted-foreground">
             {analysisResult.repo.owner}/{analysisResult.repo.name}
-            <span className="ml-2 text-xs">
+            <span className="ml-2 text-xs text-primary">
               ({analysisResult.repo.analyzedFiles}/{analysisResult.repo.totalFiles} files)
             </span>
           </span>
@@ -100,13 +118,16 @@ export default function AnalyzePage(): React.ReactElement {
               <GraphControls />
               <Legend />
               <OnboardingPanel />
+              <div className="text-[11px] font-mono px-1 text-muted-foreground">
+                Click a node to inspect &middot; Scroll to zoom &middot; Drag to rotate
+              </div>
             </div>
           </div>
 
           {/* Sidebar */}
           <Sidebar />
         </div>
-      </main>
+      </motion.main>
     </ErrorBoundary>
   );
 }

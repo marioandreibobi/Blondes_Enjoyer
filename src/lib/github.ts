@@ -64,6 +64,7 @@ const ANALYZABLE_EXTENSIONS = new Set([
   ".mjs",
   ".cts",
   ".cjs",
+  ".py",
 ]);
 
 export function isAnalyzableFile(path: string): boolean {
