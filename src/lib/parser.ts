@@ -33,6 +33,15 @@ function isRelativeImport(importPath: string): boolean {
   return importPath.startsWith("./") || importPath.startsWith("../");
 }
 
+/**
+ * Strip JS/TS extensions from an import path so we can try all possible
+ * file extensions during resolution. TypeScript files often import with
+ * .js extensions that actually map to .ts files.
+ */
+function stripJsExtension(importPath: string): string {
+  return importPath.replace(/\.(js|jsx|mjs|cjs|ts|tsx|mts|cts)$/, "");
+}
+
 function resolveRelativeImport(
   fromFile: string,
   importPath: string,
@@ -51,13 +60,17 @@ function resolveRelativeImport(
   }
 
   const resolved = dirParts.join("/");
+  // Also try with the extension stripped (e.g. './types.js' -> './types')
+  const resolvedStripped = stripJsExtension(resolved);
 
-  // Try exact match, then with extensions
+  // Try exact match, then with extensions, for both the raw and stripped path
   const extensions = ["", ".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx", "/index.js", "/index.jsx"];
-  for (const ext of extensions) {
-    const candidate = resolved + ext;
-    if (allPaths.has(candidate)) {
-      return candidate;
+  for (const base of [resolved, resolvedStripped]) {
+    for (const ext of extensions) {
+      const candidate = base + ext;
+      if (allPaths.has(candidate)) {
+        return candidate;
+      }
     }
   }
 
