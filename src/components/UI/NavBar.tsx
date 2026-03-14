@@ -31,6 +31,9 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
           <a href="#views" className="text-sm text-muted-foreground hover:text-foreground transition-brand">
             Views
           </a>
+          <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-brand">
+            Pricing
+          </a>
           {showCta && (
             <a
               href="#hero"
