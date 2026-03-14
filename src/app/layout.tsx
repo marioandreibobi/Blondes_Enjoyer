@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { AuthProvider } from "@/components/Auth/AuthProvider";
 import "./globals.css";
 
 const geistSans = Inter({
@@ -24,7 +25,9 @@ export default function RootLayout({
 }): React.ReactElement {
   return (
     <html lang="en" className="dark">
-      <body className={`${geistSans.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} font-sans antialiased`}>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
