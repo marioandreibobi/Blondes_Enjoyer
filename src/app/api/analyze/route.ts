@@ -3,8 +3,8 @@ import { validateGitHubUrl } from "@/lib/url-validator";
 import { fetchRepoTree, fetchFileContent, isAnalyzableFile, fetchRepoLanguage } from "@/lib/github";
 import { parseFile, resolveImports } from "@/lib/parser";
 import { buildGraph } from "@/lib/graph-builder";
-import { analyzeWithAI } from "@/lib/ai/analyze";
-import type { AnalysisResult, AnalyzeResponse, ParsedFile } from "@/types";
+import { analyzeWithAI, analyzeWithDeepSeek } from "@/lib/ai/analyze";
+import type { AnalysisResult, AnalyzeResponse, ParsedFile, AIAnalysis } from "@/types";
 import type { PrismaClient } from "@prisma/client";
 
 let prisma: PrismaClient | null = null;
@@ -17,6 +17,8 @@ if (process.env.DATABASE_URL) {
 }
 
 const MAX_FILES_TO_ANALYZE = 150;
+const GITHUB_CALL_TIMEOUT_MS = 25000;
+const AI_CALL_TIMEOUT_MS = 90000;
 
 // In-memory rate limiter for analysis requests
 const analyzeRateLimit = new Map<string, { count: number; firstRequest: number }>();
@@ -34,6 +36,22 @@ function checkAnalyzeRateLimit(ip: string): boolean {
   return entry.count <= MAX_ANALYZE_PER_WINDOW;
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timeoutHandle: NodeJS.Timeout | null = null;
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -45,7 +63,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const body = await request.json();
-    const { repoUrl } = body;
+    const { repoUrl, dualMode } = body;
 
     if (!repoUrl || typeof repoUrl !== "string") {
       return NextResponse.json(
@@ -66,8 +84,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    // Check cache (skip if no database)
-    if (prisma) {
+    // Check cache (skip if no database or dual mode)
+    if (prisma && !dualMode) {
       try {
         const existing = await prisma.analysis.findUnique({
           where: { repoOwner_repoName: { repoOwner: owner, repoName: repo } },
@@ -93,7 +111,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Fetch repo tree
-    const tree = await fetchRepoTree(owner, repo);
+    const tree = await withTimeout(
+      fetchRepoTree(owner, repo),
+      GITHUB_CALL_TIMEOUT_MS,
+      "Fetching repository tree"
+    );
     const analyzableFiles = tree.filter(
       (item) => item.type === "blob" && isAnalyzableFile(item.path)
     );
@@ -108,7 +130,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const batch = filesToAnalyze.slice(i, i + batchSize);
       const results = await Promise.allSettled(
         batch.map(async (item) => {
-          const content = await fetchFileContent(owner, repo, item.path);
+          const content = await withTimeout(
+            fetchFileContent(owner, repo, item.path),
+            GITHUB_CALL_TIMEOUT_MS,
+            `Fetching file ${item.path}`
+          );
           return parseFile(item.path, content);
         })
       );
@@ -125,36 +151,60 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const graph = buildGraph(parsedFiles, resolvedImports);
 
     // AI analysis
-    const language = await fetchRepoLanguage(owner, repo);
-    let ai: AnalysisResult["ai"] = {
+    const language = await withTimeout(
+      fetchRepoLanguage(owner, repo),
+      GITHUB_CALL_TIMEOUT_MS,
+      "Fetching repository language"
+    );
+    const emptyAI: AnalysisResult["ai"] = {
       summary: "",
       riskHotspots: [],
       onboarding: { steps: [] },
     };
-    try {
-      const aiResult = await analyzeWithAI(
-        `${owner}/${repo}`,
-        graph.nodes,
-        graph.links
-      );
+    // Clone graph nodes for the second approach (so merges don't interfere)
+    const graphNodesB = dualMode
+      ? graph.nodes.map((n) => ({ ...n }))
+      : [];
+
+    // Run AI calls in parallel when dual mode is enabled
+    const repoFullName = `${owner}/${repo}`;
+    const aiPromiseA = withTimeout(
+      analyzeWithAI(repoFullName, graph.nodes, graph.links),
+      AI_CALL_TIMEOUT_MS,
+      "AI analysis"
+    );
+    const aiPromiseB = dualMode
+      ? withTimeout(
+          analyzeWithDeepSeek(repoFullName, graphNodesB, graph.links),
+          AI_CALL_TIMEOUT_MS,
+          "DeepSeek analysis"
+        )
+      : null;
+
+    const settled = await Promise.allSettled(
+      aiPromiseB ? [aiPromiseA, aiPromiseB] : [aiPromiseA]
+    );
+
+    // Process result A
+    let ai = { ...emptyAI };
+    const settledA = settled[0];
+    if (settledA.status === "fulfilled") {
+      const aiResult = settledA.value;
       ai = aiResult.ai;
 
-      // Merge AI descriptions into nodes
       for (const node of graph.nodes) {
         if (aiResult.descriptions[node.id]) {
           node.description = aiResult.descriptions[node.id];
         }
       }
-
-      // Merge AI risk flags
       for (const hotspot of ai.riskHotspots) {
         const node = graph.nodes.find((n) => n.id === hotspot.file);
         if (node) {
           node.risk = hotspot.reason;
         }
       }
-    } catch (aiErr) {
-      console.warn("AI analysis failed, returning graph without AI insights:", aiErr);
+    } else {
+      console.warn("AI analysis failed, returning graph without AI insights:", settledA.reason);
     }
 
     const result: AnalysisResult = {
@@ -168,6 +218,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       graph,
       ai,
     };
+
+    // Process result B (security-focused)
+    let resultB: AnalysisResult | undefined;
+    if (dualMode) {
+      let aiB = { ...emptyAI };
+      const settledB = settled[1] as PromiseSettledResult<{ ai: AIAnalysis; descriptions: Record<string, string> }> | undefined;
+      if (settledB?.status === "fulfilled") {
+        const aiResultB = settledB.value;
+        aiB = aiResultB.ai;
+
+        for (const node of graphNodesB) {
+          if (aiResultB.descriptions[node.id]) {
+            node.description = aiResultB.descriptions[node.id];
+          }
+        }
+        for (const hotspot of aiB.riskHotspots) {
+          const node = graphNodesB.find((n) => n.id === hotspot.file);
+          if (node) {
+            node.risk = hotspot.reason;
+          }
+        }
+      } else if (settledB?.status === "rejected") {
+        console.warn("DeepSeek analysis failed:", settledB.reason);
+      }
+
+      resultB = {
+        repo: result.repo,
+        graph: { nodes: graphNodesB, links: graph.links },
+        ai: aiB,
+      };
+    }
 
     // Persist (skip if no database)
     let savedId: string | undefined;
@@ -190,7 +271,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const response: AnalyzeResponse = { id: savedId ?? "no-db", result };
+    const response: AnalyzeResponse = { id: savedId ?? "no-db", result, ...(resultB ? { resultB } : {}) };
     return NextResponse.json(response);
   } catch (err) {
     console.error("Analysis failed:", err);
