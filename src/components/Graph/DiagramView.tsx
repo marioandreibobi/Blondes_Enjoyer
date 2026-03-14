@@ -15,12 +15,17 @@ interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { id: "core", name: "CORE", subtitle: "Application core", color: "#22c55e", types: ["entry", "route", "controller"] },
+  { id: "core", name: "CORE", subtitle: "Application core & pages", color: "#22c55e", types: ["entry", "route", "controller"] },
   { id: "middleware", name: "MIDDLEWARE", subtitle: "Built-in middleware", color: "#f59e0b", types: ["middleware"] },
-  { id: "services", name: "SERVICES", subtitle: "Core libraries & services", color: "#a855f7", types: ["service", "model"] },
-  { id: "utilities", name: "UTILITIES", subtitle: "Utilities & helpers", color: "#06b6d4", types: ["util"] },
+  { id: "services", name: "SERVICES", subtitle: "Business logic & external integrations", color: "#a855f7", types: ["service", "model"] },
+  { id: "utilities", name: "UTILITIES", subtitle: "Components, helpers & state", color: "#06b6d4", types: ["util"] },
   { id: "testing", name: "QA & TESTING", subtitle: "Tests & quality assurance", color: "#ec4899", types: ["test"] },
   { id: "config", name: "CONFIGURATION", subtitle: "Build & project config", color: "#3b82f6", types: ["config"] },
+];
+
+const ALL_TABS = [
+  { id: "all", name: "All" },
+  ...CATEGORIES.map((c) => ({ id: c.id, name: c.name })),
 ];
 
 // ─── SVG Icons per type ───────────────────────────────────────
@@ -122,10 +127,6 @@ function complexityColor(c: string): string {
   }
 }
 
-function getCategoryForType(type: NodeType): Category | undefined {
-  return CATEGORIES.find((c) => c.types.includes(type));
-}
-
 // ─── Component ────────────────────────────────────────────────
 
 export default function DiagramView(): React.ReactElement {
@@ -134,6 +135,8 @@ export default function DiagramView(): React.ReactElement {
   const selectedNode = useGraphStore((s) => s.selectedNode);
   const typeFilters = useGraphStore((s) => s.typeFilters);
   const complexityFilter = useGraphStore((s) => s.complexityFilter);
+  const activeCategory = useGraphStore((s) => s.activeCategory);
+  const setActiveCategory = useGraphStore((s) => s.setActiveCategory);
 
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
@@ -170,18 +173,14 @@ export default function DiagramView(): React.ReactElement {
     return result;
   }, [filteredNodes]);
 
-  // Risk lookup
-  const riskMap = useMemo(() => {
-    if (!analysisResult) return new Map<string, { file: string; reason: string; severity: string }>();
-    const map = new Map<string, (typeof analysisResult.ai.riskHotspots)[0]>();
-    for (const r of analysisResult.ai.riskHotspots) map.set(r.file, r);
-    return map;
-  }, [analysisResult]);
+  // Apply category tab filter
+  const visibleCategories = useMemo(() => {
+    if (!activeCategory || activeCategory === "all") return categorizedNodes;
+    return categorizedNodes.filter((c) => c.category.id === activeCategory);
+  }, [categorizedNodes, activeCategory]);
 
   const totalFiles = filteredNodes.length;
   const totalLoc = filteredNodes.reduce((sum, n) => sum + n.lines, 0);
-  const totalDeps = analysisResult?.graph.links.length ?? 0;
-  const risk = selectedNode ? riskMap.get(selectedNode.id) : undefined;
 
   if (!analysisResult || filteredNodes.length === 0) {
     return (
@@ -192,32 +191,67 @@ export default function DiagramView(): React.ReactElement {
   }
 
   return (
-    <div className="w-full h-full flex" style={{ background: "#0a0e27" }}>
-      {/* ─── Main grid area ─── */}
+    <div className="w-full h-full flex flex-col" style={{ background: "#0a0e27" }}>
+      {/* ─── Title + Stats ─── */}
       <div
-        className="flex-1 overflow-auto p-8"
+        className="px-8 pt-6 pb-2"
         style={{
           backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       >
-        {/* Stats bar */}
+        <h2
+          className="text-sm font-mono font-semibold tracking-wider mb-1"
+          style={{ color: "rgba(255,255,255,0.5)" }}
+        >
+          CITY MAP VIEW
+        </h2>
         <div
-          className="flex items-center gap-4 mb-6 text-[11px] font-mono"
+          className="flex items-center gap-4 text-[11px] font-mono"
           style={{ color: "rgba(255,255,255,0.35)" }}
         >
-          <span>{totalFiles} Files</span>
+          <span>{totalFiles} files</span>
           <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
-          <span>{totalLoc.toLocaleString()} LOC</span>
-          <span style={{ color: "rgba(255,255,255,0.15)" }}>·</span>
-          <span>{totalDeps} Dependencies</span>
+          <span>{totalLoc.toLocaleString()} lines</span>
         </div>
+      </div>
 
-        {/* Category sections */}
-        {categorizedNodes.map(({ category, nodes }) => (
-          <section key={category.id} className="mb-10">
+      {/* ─── Category Tabs ─── */}
+      <div
+        className="px-8 py-3 flex gap-1.5 overflow-x-auto flex-shrink-0"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        {ALL_TABS.map((tab) => {
+          const isActive = (activeCategory ?? "all") === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveCategory(tab.id === "all" ? null : tab.id)}
+              className="px-3 py-1.5 rounded-md text-[11px] font-mono font-semibold tracking-wider whitespace-nowrap transition-all"
+              style={
+                isActive
+                  ? { background: "rgba(99,102,241,0.8)", color: "#fff", boxShadow: "0 0 12px rgba(99,102,241,0.3)" }
+                  : { color: "rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.03)" }
+              }
+            >
+              {tab.name}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ─── Main grid area ─── */}
+      <div
+        className="flex-1 overflow-auto px-8 py-6"
+        style={{
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      >
+        {visibleCategories.map(({ category, nodes }) => (
+          <section key={category.id} className="mb-8">
             {/* Category header */}
-            <div className="mb-3">
+            <div className="mb-3 flex items-baseline gap-3">
               <h3
                 className="text-[13px] font-mono font-bold tracking-widest"
                 style={{ color: category.color }}
@@ -225,17 +259,17 @@ export default function DiagramView(): React.ReactElement {
                 {category.name}
               </h3>
               <p
-                className="text-[11px] font-mono mt-0.5"
+                className="text-[11px] font-mono"
                 style={{ color: "rgba(255,255,255,0.3)" }}
               >
                 {category.subtitle} · {nodes.length} files
               </p>
             </div>
 
-            {/* File cards grid — 4 columns like the reference */}
+            {/* File cards grid — 4 columns */}
             <div
               className="grid gap-3"
-              style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}
             >
               {nodes.map((node) => {
                 const fileName = node.id.split("/").pop() ?? node.id;
@@ -280,12 +314,30 @@ export default function DiagramView(): React.ReactElement {
                         >
                           {fileName}
                         </p>
-                        <p
-                          className="text-[11px] font-mono mt-0.5"
-                          style={{ color: "rgba(255,255,255,0.35)" }}
-                        >
-                          {node.lines} Lines
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span
+                            className="text-[11px] font-mono"
+                            style={{ color: "rgba(255,255,255,0.35)" }}
+                          >
+                            {node.lines}L
+                          </span>
+                          {node.imports > 0 && (
+                            <>
+                              <span
+                                className="text-[11px] font-mono"
+                                style={{ color: "rgba(255,255,255,0.15)" }}
+                              >
+                                ·
+                              </span>
+                              <span
+                                className="text-[11px] font-mono"
+                                style={{ color: "rgba(255,255,255,0.35)" }}
+                              >
+                                {node.imports}d
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {/* Complexity dot */}
@@ -315,196 +367,6 @@ export default function DiagramView(): React.ReactElement {
           </section>
         ))}
       </div>
-
-      {/* ─── Inspector Panel ─── */}
-      <aside
-        className="w-72 h-full overflow-y-auto flex flex-col flex-shrink-0"
-        style={{
-          background: "rgba(10,14,39,0.95)",
-          borderLeft: "1px solid rgba(255,255,255,0.06)",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-4 py-3"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <h2
-            className="text-xs font-mono font-semibold tracking-wider"
-            style={{ color: "rgba(255,255,255,0.5)" }}
-          >
-            INSPECTOR
-          </h2>
-          {selectedNode && (
-            <button
-              onClick={() => selectNode(null)}
-              className="text-xs font-mono transition-colors"
-              style={{ color: "rgba(255,255,255,0.25)" }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {selectedNode ? (
-          <div className="p-4 space-y-4">
-            {/* File header */}
-            <div className="flex items-start gap-2.5">
-              <span
-                className="mt-0.5 flex-shrink-0"
-                style={{
-                  color: getCategoryForType(selectedNode.type)?.color ?? "#64748b",
-                }}
-              >
-                <FileIcon type={selectedNode.type} />
-              </span>
-              <div className="min-w-0">
-                <p
-                  className="text-sm font-mono font-semibold break-all"
-                  style={{ color: "#e2e8f0" }}
-                >
-                  {selectedNode.id.split("/").pop()}
-                </p>
-                <p
-                  className="text-[10px] font-mono mt-0.5 break-all"
-                  style={{ color: "rgba(255,255,255,0.3)" }}
-                >
-                  {selectedNode.id}
-                </p>
-              </div>
-            </div>
-
-            {/* Stats grid — matches reference layout */}
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                {
-                  label: "TYPE",
-                  value:
-                    selectedNode.type.charAt(0).toUpperCase() +
-                    selectedNode.type.slice(1),
-                },
-                {
-                  label: "COMPLEXITY",
-                  value:
-                    selectedNode.complexity.charAt(0).toUpperCase() +
-                    selectedNode.complexity.slice(1),
-                },
-                { label: "LINES", value: String(selectedNode.lines) },
-                { label: "IMPORTS", value: String(selectedNode.imports) },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-lg px-3 py-2"
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.04)",
-                  }}
-                >
-                  <p
-                    className="text-[9px] font-mono uppercase tracking-wider"
-                    style={{ color: "rgba(255,255,255,0.3)" }}
-                  >
-                    {item.label}
-                  </p>
-                  <p
-                    className="text-xs font-mono mt-0.5 font-medium"
-                    style={{ color: "#cbd5e1" }}
-                  >
-                    {item.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Imported By — full width, prominent number */}
-            <div
-              className="rounded-lg px-3 py-2"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.04)",
-              }}
-            >
-              <p
-                className="text-[9px] font-mono uppercase tracking-wider"
-                style={{ color: "rgba(255,255,255,0.3)" }}
-              >
-                IMPORTED BY
-              </p>
-              <p
-                className="text-lg font-mono font-bold mt-0.5"
-                style={{ color: "#cbd5e1" }}
-              >
-                {selectedNode.importedBy}
-              </p>
-            </div>
-
-            {/* Description */}
-            {selectedNode.description && (
-              <div>
-                <p
-                  className="text-[9px] font-mono uppercase tracking-wider mb-1"
-                  style={{ color: "rgba(255,255,255,0.3)" }}
-                >
-                  DESCRIPTION
-                </p>
-                <p
-                  className="text-xs leading-relaxed"
-                  style={{ color: "rgba(255,255,255,0.65)" }}
-                >
-                  {selectedNode.description}
-                </p>
-              </div>
-            )}
-
-            {/* Risk alert */}
-            {risk && (
-              <div
-                className="rounded-lg p-3"
-                style={{
-                  background: "rgba(239,68,68,0.08)",
-                  border: "1px solid rgba(239,68,68,0.2)",
-                }}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#ef4444"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                    <line x1="12" y1="9" x2="12" y2="13" />
-                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                  </svg>
-                  <p
-                    className="text-[10px] font-mono font-semibold uppercase"
-                    style={{ color: "#ef4444" }}
-                  >
-                    Risk — {risk.severity}
-                  </p>
-                </div>
-                <p
-                  className="text-xs leading-relaxed"
-                  style={{ color: "rgba(255,255,255,0.6)" }}
-                >
-                  {risk.reason}
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div
-            className="p-4 text-xs font-mono"
-            style={{ color: "rgba(255,255,255,0.25)" }}
-          >
-            Click a file to inspect
-          </div>
-        )}
-      </aside>
     </div>
   );
 }

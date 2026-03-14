@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useGraphStore } from "@/store/graph-store";
 import ForceGraph from "@/components/Graph/ForceGraph";
 import DiagramView from "@/components/Graph/DiagramView";
 import NodeTooltip from "@/components/Graph/NodeTooltip";
-import Sidebar from "@/components/UI/Sidebar";
+import AnalysisPanel from "@/components/UI/AnalysisPanel";
+import Legend from "@/components/Legend/Legend";
 import LoadingState from "@/components/UI/LoadingState";
 import ErrorBoundary from "@/components/UI/ErrorBoundary";
 import NavBar from "@/components/UI/NavBar";
@@ -17,7 +18,7 @@ import type { AnalyzeResponse } from "@/types";
 
 export default function AnalyzePage(): React.ReactElement {
   const params = useParams<{ owner: string; repo: string }>();
-  const { setAnalysisResult, setLoading, setError, loading, error, analysisResult, activeView, setActiveView } =
+  const { setAnalysisResult, setLoading, setError, loading, error, analysisResult, activeView, setActiveView, activeCategory, setActiveCategory } =
     useGraphStore();
 
   useEffect(() => {
@@ -46,6 +47,19 @@ export default function AnalyzePage(): React.ReactElement {
 
     load();
   }, [params.owner, params.repo, setAnalysisResult, setLoading, setError]);
+
+  const handleExport = useCallback((): void => {
+    if (!analysisResult) return;
+    const blob = new Blob([JSON.stringify(analysisResult, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `codeatlas-${analysisResult.repo.owner}-${analysisResult.repo.name}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [analysisResult]);
 
   if (loading) {
     return (
@@ -81,6 +95,19 @@ export default function AnalyzePage(): React.ReactElement {
 
   if (!analysisResult) return <></>;
 
+  const totalFiles = analysisResult.repo.analyzedFiles;
+  const totalLines = analysisResult.graph.nodes.reduce((s, n) => s + n.lines, 0);
+  const totalDeps = analysisResult.graph.links.length;
+
+  const CATEGORY_TABS = [
+    { id: "all", name: "All" },
+    { id: "core", name: "Core" },
+    { id: "services", name: "Services" },
+    { id: "utilities", name: "UI" },
+    { id: "testing", name: "QA" },
+    { id: "config", name: "Config" },
+  ];
+
   return (
     <ErrorBoundary>
       <NavBar showCta={false} />
@@ -91,41 +118,90 @@ export default function AnalyzePage(): React.ReactElement {
         className="h-screen flex flex-col pt-14"
         style={{ background: "#0a0e27" }}
       >
-        {/* Minimal header bar */}
+        {/* ─── Header bar ─── */}
         <header
           className="flex items-center justify-between px-5 py-2.5"
           style={{ background: "rgba(10,14,39,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
-          <div className="flex items-center gap-3">
+          {/* Left: branding + repo name */}
+          <div className="flex items-center gap-4">
+            <span
+              className="text-sm font-mono font-bold tracking-wider"
+              style={{ color: "rgba(255,255,255,0.7)" }}
+            >
+              CODEATLAS
+            </span>
             <span
               className="text-sm font-mono font-medium"
-              style={{ color: "rgba(255,255,255,0.7)" }}
+              style={{ color: "rgba(255,255,255,0.5)" }}
             >
               {analysisResult.repo.owner}/{analysisResult.repo.name}
             </span>
-            <span
-              className="text-xs font-mono px-2 py-0.5 rounded-md"
-              style={{ color: "rgba(255,255,255,0.4)", background: "rgba(255,255,255,0.04)" }}
-            >
-              {analysisResult.repo.analyzedFiles}/{analysisResult.repo.totalFiles} files
+          </div>
+
+          {/* Center: stats */}
+          <div className="flex items-center gap-5 text-[11px] font-mono" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <span>
+              <span className="font-semibold" style={{ color: "#ef4444" }}>FILES</span>{" "}
+              <span style={{ color: "#ef4444" }}>{totalFiles}</span>
+            </span>
+            <span>
+              <span className="font-semibold" style={{ color: "#f59e0b" }}>LINES</span>{" "}
+              <span style={{ color: "#f59e0b" }}>{totalLines.toLocaleString()}</span>
+            </span>
+            <span>
+              <span className="font-semibold" style={{ color: "#3b82f6" }}>DEPS</span>{" "}
+              <span style={{ color: "#3b82f6" }}>{totalDeps}</span>
             </span>
           </div>
-          <ViewSwitcher value={activeView} onSwitch={setActiveView} />
+
+          {/* Right: view switcher */}
+          <ViewSwitcher value={activeView} onSwitch={setActiveView} onExport={handleExport} />
         </header>
 
-        {/* Body */}
+        {/* ─── Category filter tabs (shared across both views) ─── */}
+        {activeView === "3d" && (
+          <div
+            className="flex items-center gap-1 px-5 py-2"
+            style={{ background: "rgba(10,14,39,0.9)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+          >
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = (activeCategory ?? "all") === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveCategory(tab.id === "all" ? null : tab.id)}
+                  className="px-3 py-1 rounded-full text-xs font-mono transition-all"
+                  style={
+                    isActive
+                      ? { background: "rgba(99,102,241,0.8)", color: "#fff" }
+                      : { background: "transparent", color: "rgba(255,255,255,0.45)" }
+                  }
+                >
+                  {tab.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ─── Body ─── */}
         <div className="flex-1 flex overflow-hidden">
-          {activeView === "3d" ? (
-            <>
-              <div className="flex-1 relative">
+          {/* Main content area */}
+          <div className="flex-1 relative overflow-hidden">
+            {activeView === "3d" ? (
+              <>
                 <ForceGraph />
                 <NodeTooltip />
-              </div>
-              <Sidebar />
-            </>
-          ) : (
-            <DiagramView />
-          )}
+                <Legend />
+              </>
+            ) : (
+              <DiagramView />
+            )}
+          </div>
+
+          {/* Unified Analysis Panel — always visible */}
+          <AnalysisPanel />
         </div>
 
         {/* AI Chat */}

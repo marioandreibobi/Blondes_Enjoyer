@@ -15,6 +15,7 @@ interface GraphState {
 
   // UI
   activeView: "3d" | "diagram";
+  activeCategory: string | null;
   sidebarOpen: boolean;
   loading: boolean;
   error: string | null;
@@ -22,6 +23,7 @@ interface GraphState {
   // Actions
   setAnalysisResult: (result: AnalysisResult) => void;
   setActiveView: (view: "3d" | "diagram") => void;
+  setActiveCategory: (category: string | null) => void;
   selectNode: (node: GraphNode | null) => void;
   hoverNode: (node: GraphNode | null) => void;
   toggleTypeFilter: (type: NodeType) => void;
@@ -40,6 +42,7 @@ const initialState = {
   typeFilters: new Set<NodeType>(),
   complexityFilter: "all" as const,
   activeView: "3d" as const,
+  activeCategory: null as string | null,
   sidebarOpen: true,
   loading: false,
   error: null,
@@ -52,6 +55,8 @@ export const useGraphStore = create<GraphState>((set) => ({
     set({ analysisResult: result, loading: false, error: null }),
 
   setActiveView: (view) => set({ activeView: view }),
+
+  setActiveCategory: (category) => set({ activeCategory: category }),
 
   selectNode: (node) => set({ selectedNode: node, sidebarOpen: node !== null }),
 

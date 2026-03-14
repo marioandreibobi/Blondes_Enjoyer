@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useCallback } from "react";
 import { useGraphStore } from "@/store/graph-store";
-import type { GraphNode } from "@/types";
+import type { GraphNode, NodeType } from "@/types";
 
 export const NODE_TYPES: Record<string, { color: string; label: string }> = {
   entry:      { color: "#ff6b6b", label: "Entry point" },
@@ -16,11 +16,24 @@ export const NODE_TYPES: Record<string, { color: string; label: string }> = {
   test:       { color: "#20c997", label: "Test" },
 };
 
+// Category-based colors (matching Legend & DiagramView)
+const CATEGORY_COLOR_MAP: Record<string, string> = {
+  entry: "#22c55e",
+  route: "#22c55e",
+  controller: "#22c55e",
+  service: "#a855f7",
+  model: "#a855f7",
+  middleware: "#f59e0b",
+  util: "#06b6d4",
+  test: "#ec4899",
+  config: "#3b82f6",
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ForceGraphInstance = any;
 
 function getNodeColor(n: GraphNode): string {
-  return NODE_TYPES[n.type]?.color ?? "#868e96";
+  return CATEGORY_COLOR_MAP[n.type] ?? "#64748b";
 }
 
 export default function ForceGraph(): React.ReactElement {
@@ -31,6 +44,7 @@ export default function ForceGraph(): React.ReactElement {
   const hoverNode = useGraphStore((s) => s.hoverNode);
   const typeFilters = useGraphStore((s) => s.typeFilters);
   const complexityFilter = useGraphStore((s) => s.complexityFilter);
+  const activeCategory = useGraphStore((s) => s.activeCategory);
 
   const getFilteredData = useCallback(() => {
     if (!analysisResult) return { nodes: [], links: [] };
@@ -43,21 +57,39 @@ export default function ForceGraph(): React.ReactElement {
       nodes = nodes.filter((n) => n.complexity === complexityFilter);
     }
 
+    // Category filter (same logic as DiagramView)
+    if (activeCategory && activeCategory !== "all") {
+      const CATEGORY_TYPE_MAP: Record<string, NodeType[]> = {
+        core: ["entry", "route", "controller"],
+        services: ["service", "model"],
+        utilities: ["util"],
+        middleware: ["middleware"],
+        testing: ["test"],
+        config: ["config"],
+      };
+      const allowedTypes = CATEGORY_TYPE_MAP[activeCategory];
+      if (allowedTypes) {
+        nodes = nodes.filter((n) => allowedTypes.includes(n.type));
+      }
+    }
+
     const nodeIds = new Set(nodes.map((n) => n.id));
     const links = analysisResult.graph.links.filter(
       (l) => nodeIds.has(l.source) && nodeIds.has(l.target)
     );
 
     return { nodes, links };
-  }, [analysisResult, typeFilters, complexityFilter]);
+  }, [analysisResult, typeFilters, complexityFilter, activeCategory]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !containerRef.current || !analysisResult) return;
 
     let destroyed = false;
 
-    import("3d-force-graph").then((mod) => {
+    import("3d-force-graph").then(async (mod) => {
       if (destroyed || !containerRef.current) return;
+
+      const THREE = await import("three");
 
       // Clear any stale content from previous mount (React StrictMode)
       containerRef.current.innerHTML = "";
@@ -80,8 +112,35 @@ export default function ForceGraph(): React.ReactElement {
           const n = node as GraphNode;
           return `${n.id} (${NODE_TYPES[n.type]?.label ?? n.type})`;
         })
-        .linkColor(() => "rgba(255,255,255,0.08)")
-        .linkWidth(0.3)
+        .nodeThreeObjectExtend(true)
+        .nodeThreeObject((node: object) => {
+          const n = node as GraphNode;
+          const fileName = n.id.split("/").pop() ?? n.id;
+
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return null;
+          canvas.width = 256;
+          canvas.height = 64;
+          ctx.clearRect(0, 0, 256, 64);
+          ctx.font = "bold 22px monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = getNodeColor(n);
+          ctx.globalAlpha = 0.85;
+          const label = fileName.length > 20 ? fileName.slice(0, 18) + "…" : fileName;
+          ctx.fillText(label, 128, 32);
+
+          const texture = new THREE.CanvasTexture(canvas);
+          const sprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false })
+          );
+          sprite.scale.set(24, 6, 1);
+          sprite.position.set(0, 6, 0);
+          return sprite;
+        })
+        .linkColor(() => "rgba(255,255,255,0.12)")
+        .linkWidth(0.4)
         .linkDirectionalParticles(1)
         .linkDirectionalParticleWidth(0.6)
         .linkDirectionalParticleSpeed(0.006)
@@ -90,10 +149,8 @@ export default function ForceGraph(): React.ReactElement {
           const n = node as GraphNode;
           selectNode(n);
 
-          // Highlight connected nodes
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const data = graph.graphData() as { links: any[] };
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const connected = new Set<string>([n.id]);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data.links.forEach((l: any) => {
@@ -123,7 +180,7 @@ export default function ForceGraph(): React.ReactElement {
         .onBackgroundClick(() => {
           selectNode(null);
           graph.nodeColor((nd: object) => getNodeColor(nd as GraphNode));
-          graph.linkColor(() => "rgba(255,255,255,0.08)");
+          graph.linkColor(() => "rgba(255,255,255,0.12)");
         });
 
       // Force configuration
@@ -140,7 +197,6 @@ export default function ForceGraph(): React.ReactElement {
 
     return () => {
       destroyed = true;
-      // Delay cleanup to avoid StrictMode double-mount race condition
       const currentGraph = graphRef.current;
       if (currentGraph) {
         setTimeout(() => {
