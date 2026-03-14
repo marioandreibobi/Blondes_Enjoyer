@@ -15,10 +15,20 @@ export async function fetchRepoTree(
 ): Promise<RepoTreeItem[]> {
   const octokit = getOctokit();
 
+  // Get default branch SHA first — "HEAD" literal doesn't work with getTree
+  const { data: repoData } = await octokit.repos.get({ owner, repo });
+  const defaultBranch = repoData.default_branch;
+  const { data: refData } = await octokit.git.getRef({
+    owner,
+    repo,
+    ref: `heads/${defaultBranch}`,
+  });
+  const commitSha = refData.object.sha;
+
   const { data } = await octokit.git.getTree({
     owner,
     repo,
-    tree_sha: "HEAD",
+    tree_sha: commitSha,
     recursive: "true",
   });
 
