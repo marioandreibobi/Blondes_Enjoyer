@@ -1,77 +1,96 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import {
-  hashPassword,
   createSession,
   setSessionCookie,
 } from "@/lib/auth";
 
 interface SignupBody {
   email: string;
-  name: string;
-  password: string;
+  code: string;
 }
 
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+const MAX_ATTEMPTS = 5;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = (await request.json()) as SignupBody;
-    const { email, name, password } = body;
+    const { email, code } = body;
 
-    if (!email || !name || !password) {
+    if (!email || !code) {
       return NextResponse.json(
-        { error: "Email, name, and password are required." },
+        { error: "Email and verification code are required." },
         { status: 400 }
       );
     }
 
     const trimmedEmail = email.trim().toLowerCase();
-    const trimmedName = name.trim();
+    const trimmedCode = code.trim();
 
-    if (!isValidEmail(trimmedEmail)) {
+    // Find the most recent pending verification for this email
+    const pending = await prisma.pendingVerification.findFirst({
+      where: { email: trimmedEmail },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!pending) {
       return NextResponse.json(
-        { error: "Please enter a valid email address." },
+        { error: "No verification code found. Please request a new one." },
+        { status: 404 }
+      );
+    }
+
+    if (pending.expiresAt < new Date()) {
+      await prisma.pendingVerification.deleteMany({ where: { email: trimmedEmail } });
+      return NextResponse.json(
+        { error: "Verification code has expired. Please request a new one." },
+        { status: 410 }
+      );
+    }
+
+    if (pending.attempts >= MAX_ATTEMPTS) {
+      await prisma.pendingVerification.deleteMany({ where: { email: trimmedEmail } });
+      return NextResponse.json(
+        { error: "Too many failed attempts. Please request a new code." },
+        { status: 429 }
+      );
+    }
+
+    if (pending.code !== trimmedCode) {
+      await prisma.pendingVerification.update({
+        where: { id: pending.id },
+        data: { attempts: { increment: 1 } },
+      });
+      return NextResponse.json(
+        { error: "Incorrect verification code. Please try again." },
         { status: 400 }
       );
     }
 
-    if (trimmedName.length < 2 || trimmedName.length > 100) {
-      return NextResponse.json(
-        { error: "Name must be between 2 and 100 characters." },
-        { status: 400 }
-      );
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters." },
-        { status: 400 }
-      );
-    }
-
-    const existing = await prisma.user.findUnique({
+    // Check if email was taken while pending
+    const existingUser = await prisma.user.findUnique({
       where: { email: trimmedEmail },
     });
 
-    if (existing) {
+    if (existingUser) {
+      await prisma.pendingVerification.deleteMany({ where: { email: trimmedEmail } });
       return NextResponse.json(
         { error: "An account with this email already exists." },
         { status: 409 }
       );
     }
 
-    const passwordHash = await hashPassword(password);
-
+    // Create the user with the pre-hashed password
     const user = await prisma.user.create({
       data: {
         email: trimmedEmail,
-        name: trimmedName,
-        passwordHash,
+        name: pending.name,
+        passwordHash: pending.passwordHash,
       },
     });
+
+    // Clean up all pending verifications for this email
+    await prisma.pendingVerification.deleteMany({ where: { email: trimmedEmail } });
 
     const token = await createSession(user.id);
     await setSessionCookie(token);

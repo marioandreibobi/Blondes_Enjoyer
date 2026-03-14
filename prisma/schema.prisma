@@ -46,3 +46,17 @@ model Session {
   @@index([token])
   @@index([userId])
 }
+
+model PendingVerification {
+  id           String   @id @default(cuid())
+  email        String
+  name         String
+  passwordHash String
+  code         String
+  attempts     Int      @default(0)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([email])
+  @@index([code])
+}

@@ -4,6 +4,20 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from "react"
 import { useGraphStore } from "@/store/graph-store";
 import type { GraphNode, NodeType } from "@/types";
 
+// ─── NODE_TYPES (exported for NodeTooltip) ────────────────────
+
+export const NODE_TYPES: Record<string, { color: string; label: string }> = {
+  route:      { color: "#3b82f6", label: "Route" },
+  controller: { color: "#3b82f6", label: "Controller" },
+  entry:      { color: "#3b82f6", label: "Entry" },
+  middleware: { color: "#3b82f6", label: "Middleware" },
+  service:    { color: "#22c55e", label: "Service" },
+  model:      { color: "#22c55e", label: "Model" },
+  util:       { color: "#facc15", label: "Utility" },
+  test:       { color: "#ec4899", label: "Test" },
+  config:     { color: "#f97316", label: "Config" },
+};
+
 // ─── Category mapping ─────────────────────────────────────────
 
 type CategoryType = "core" | "services" | "utilities" | "qa" | "configuration";
