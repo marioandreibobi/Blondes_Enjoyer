@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codeatlas
+      POSTGRES_PASSWORD: codeatlas
+      POSTGRES_DB: codeatlas
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeatlas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://codeatlas:codeatlas@db:5432/codeatlas?schema=public"
+      GITHUB_TOKEN: "${GITHUB_TOKEN}"
+      FEATHERLESS_API_KEY: "${FEATHERLESS_API_KEY}"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
