@@ -134,13 +134,20 @@ export default function PricingPlans(): React.ReactElement {
         body: JSON.stringify({ planName: plan.name, billing }),
       });
 
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("Checkout service is currently unavailable");
+      }
+
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Checkout failed");
       }
 
-      const { url } = await res.json();
-      window.open(url, "_blank", "noopener,noreferrer");
+      if (data.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

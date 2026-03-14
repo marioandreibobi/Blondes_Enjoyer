@@ -28,6 +28,7 @@ export interface GraphNode {
 export interface GraphLink {
   source: string; // file path
   target: string; // file path
+  strength?: number; // relationship weight for visual thickness/color
 }
 
 // ─── AI Analysis ──────────────────────────────────────────────
