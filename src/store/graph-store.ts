@@ -14,12 +14,14 @@ interface GraphState {
   complexityFilter: "all" | "low" | "medium" | "high";
 
   // UI
+  activeView: "3d" | "diagram";
   sidebarOpen: boolean;
   loading: boolean;
   error: string | null;
 
   // Actions
   setAnalysisResult: (result: AnalysisResult) => void;
+  setActiveView: (view: "3d" | "diagram") => void;
   selectNode: (node: GraphNode | null) => void;
   hoverNode: (node: GraphNode | null) => void;
   toggleTypeFilter: (type: NodeType) => void;
@@ -36,6 +38,7 @@ const initialState = {
   hoveredNode: null,
   typeFilters: new Set<NodeType>(),
   complexityFilter: "all" as const,
+  activeView: "3d" as const,
   sidebarOpen: true,
   loading: false,
   error: null,
@@ -46,6 +49,8 @@ export const useGraphStore = create<GraphState>((set) => ({
 
   setAnalysisResult: (result) =>
     set({ analysisResult: result, loading: false, error: null }),
+
+  setActiveView: (view) => set({ activeView: view }),
 
   selectNode: (node) => set({ selectedNode: node, sidebarOpen: node !== null }),
 

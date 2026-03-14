@@ -28,7 +28,7 @@ export default function HeroSection(): React.ReactElement {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<"3d" | "svg">("3d");
+  const [view, setView] = useState<"3d" | "diagram">("3d");
   const router = useRouter();
 
   const githubUrlPattern =
@@ -158,7 +158,7 @@ export default function HeroSection(): React.ReactElement {
             className="relative"
           >
             <div className="flex justify-end mb-3">
-              <ViewSwitcher onSwitch={setView} />
+              <ViewSwitcher value={view} onSwitch={setView} />
             </div>
             <div className="rounded-2xl bg-glass border-glass shadow-blueprint overflow-hidden min-h-[320px]">
               {view === "3d" ? <HeroMiniGraph /> : <CodescapeVisual />}
