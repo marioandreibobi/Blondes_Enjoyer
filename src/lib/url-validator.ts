@@ -40,7 +40,10 @@ export function validateGitHubUrl(url: string): ParsedRepo {
     throw new Error("Internal URLs are not allowed");
   }
 
-  const match = trimmed.match(GITHUB_URL_REGEX);
+  // Strip trailing .git (common clone URL format)
+  const cleaned = trimmed.replace(/\.git\/?$/, "");
+
+  const match = cleaned.match(GITHUB_URL_REGEX);
   if (!match) {
     throw new Error(
       "Invalid GitHub URL. Expected format: https://github.com/{owner}/{repo}"

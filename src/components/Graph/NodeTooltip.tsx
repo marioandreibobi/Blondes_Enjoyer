@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 import { useGraphStore } from "@/store/graph-store";
 import { NODE_TYPES } from "@/components/Graph/ForceGraph";
 
@@ -12,16 +13,13 @@ export default function NodeTooltip(): React.ReactElement | null {
   const typeInfo = NODE_TYPES[hoveredNode.type];
 
   return (
-    <div
-      className="fixed top-4 left-4 z-50 max-w-xs rounded-xl p-4 pointer-events-none shadow-lg"
-      style={{
-        background: "rgba(15,15,35,0.92)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        backdropFilter: "blur(12px)",
-        fontSize: "13px",
-      }}
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed top-4 left-4 z-50 max-w-xs rounded-xl p-4 pointer-events-none bg-glass border-glass shadow-blueprint"
     >
-      <p className="text-sm font-mono font-semibold text-white truncate">
+      <p className="text-sm font-mono font-semibold text-foreground truncate">
         {hoveredNode.id}
       </p>
       <div className="mt-2 flex gap-1.5 flex-wrap">
@@ -36,33 +34,24 @@ export default function NodeTooltip(): React.ReactElement | null {
             {typeInfo.label}
           </span>
         )}
-        <span
-          className="inline-block px-2 py-0.5 rounded text-[11px]"
-          style={{ background: "rgba(255,255,255,0.05)", color: "#aaa" }}
-        >
+        <span className="inline-block px-2 py-0.5 rounded text-[11px] bg-secondary/50 text-muted-foreground">
           {hoveredNode.lines} lines
         </span>
-        <span
-          className="inline-block px-2 py-0.5 rounded text-[11px] capitalize"
-          style={{ background: "rgba(255,255,255,0.05)", color: "#aaa" }}
-        >
+        <span className="inline-block px-2 py-0.5 rounded text-[11px] capitalize bg-secondary/50 text-muted-foreground">
           {hoveredNode.complexity}
         </span>
       </div>
       {hoveredNode.description && (
-        <p className="mt-2 text-xs" style={{ color: "#aaa" }}>
+        <p className="mt-2 text-xs text-muted-foreground">
           {hoveredNode.description}
         </p>
       )}
       {hoveredNode.risk && (
-        <div
-          className="mt-2 inline-block px-2.5 py-1 rounded-md text-[11px]"
-          style={{ background: "rgba(255,80,80,0.2)", color: "#ff6b6b" }}
-        >
+        <div className="mt-2 inline-block px-2.5 py-1 rounded-md text-[11px] bg-accent/20 text-accent">
           ⚠ {hoveredNode.risk}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

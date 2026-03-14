@@ -21,28 +21,21 @@ export default function Legend(): React.ReactElement {
   const typeFilters = useGraphStore((s) => s.typeFilters);
 
   return (
-    <div
-      className="flex flex-wrap gap-2 p-3 rounded-xl border"
-      style={{
-        background: "rgba(15,15,35,0.92)",
-        borderColor: "rgba(255,255,255,0.1)",
-        backdropFilter: "blur(12px)",
-      }}
-    >
+    <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-glass border-glass shadow-blueprint">
       {LEGEND_ITEMS.map((item) => (
         <div
           key={item.type}
           onClick={() => toggleTypeFilter(item.type)}
-          className="flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-md border border-transparent transition-all hover:border-white/20 hover:bg-white/5"
+          className="flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded-md border border-transparent transition-brand hover:border-primary/20 hover:bg-white/5"
           style={{
             opacity: typeFilters.has(item.type) ? 0.35 : 1,
           }}
         >
           <span
             className="w-2.5 h-2.5 rounded-full inline-block"
-            style={{ backgroundColor: item.color }}
+            style={{ backgroundColor: item.color, boxShadow: `0 0 6px ${item.color}40` }}
           />
-          <span className="text-[11px] text-[#aaa]">{item.label}</span>
+          <span className="text-[11px] text-muted-foreground">{item.label}</span>
         </div>
       ))}
     </div>

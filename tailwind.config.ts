@@ -8,7 +8,16 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: { "2xl": "1400px" },
+    },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "Fira Code", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -43,15 +52,52 @@ const config: Config = {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
+        blueprint: {
+          line: "rgba(56, 120, 200, 0.08)",
+          glow: "rgba(56, 120, 200, 0.15)",
+        },
+        ink: {
+          DEFAULT: "hsl(225 15% 55%)",
+          light: "hsl(225 15% 75%)",
+        },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          border: "hsl(var(--sidebar-border))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        "pulse-glow": {
+          "0%, 100%": { opacity: "0.4", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.05)" },
+        },
+        "draw-in": {
+          "0%": { strokeDashoffset: "1000" },
+          "100%": { strokeDashoffset: "0" },
+        },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "hex-spin": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+      },
+      animation: {
+        "pulse-glow": "pulse-glow 3s ease-in-out infinite",
+        "draw-in": "draw-in 2s ease-out forwards",
+        "fade-in-up": "fade-in-up 0.6s ease-out forwards",
+        "hex-spin": "hex-spin 2s linear infinite",
+      },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };
 
 export default config;

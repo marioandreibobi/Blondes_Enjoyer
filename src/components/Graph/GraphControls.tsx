@@ -20,14 +20,7 @@ export default function GraphControls(): React.ReactElement {
   const setComplexityFilter = useGraphStore((s) => s.setComplexityFilter);
 
   return (
-    <div
-      className="flex flex-col gap-3 p-3 rounded-xl border"
-      style={{
-        background: "rgba(15,15,35,0.92)",
-        borderColor: "rgba(255,255,255,0.1)",
-        backdropFilter: "blur(12px)",
-      }}
-    >
+    <div className="flex flex-col gap-3 p-3 rounded-xl bg-glass border-glass shadow-blueprint">
       <div>
         <p className="text-xs font-medium text-muted-foreground mb-1">
           Hide Types
@@ -37,10 +30,10 @@ export default function GraphControls(): React.ReactElement {
             <button
               key={type}
               onClick={() => toggleTypeFilter(type)}
-              className={`px-2 py-0.5 text-xs rounded-full border transition-colors capitalize ${
+              className={`px-2 py-0.5 text-xs rounded-full border transition-brand capitalize ${
                 typeFilters.has(type)
-                  ? "bg-muted text-muted-foreground line-through"
-                  : "bg-background text-foreground border-border"
+                  ? "bg-muted/50 text-muted-foreground line-through border-transparent"
+                  : "bg-secondary/50 text-foreground border-glass hover:border-primary/30"
               }`}
             >
               {type}
@@ -57,10 +50,10 @@ export default function GraphControls(): React.ReactElement {
             <button
               key={opt}
               onClick={() => setComplexityFilter(opt)}
-              className={`px-2 py-0.5 text-xs rounded-full border transition-colors capitalize ${
+              className={`px-2 py-0.5 text-xs rounded-full border transition-brand capitalize ${
                 complexityFilter === opt
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background text-foreground border-border"
+                  ? "bg-primary text-primary-foreground glow-primary border-primary/50"
+                  : "bg-secondary/50 text-foreground border-glass hover:border-primary/30"
               }`}
             >
               {opt}

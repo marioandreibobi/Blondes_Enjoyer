@@ -26,7 +26,7 @@ describe("buildGraph", () => {
   it("infers node types from file paths", () => {
     const files: ParsedFile[] = [
       { path: "src/app/api/route.ts", content: "", lines: 10, imports: [] },
-      { path: "src/lib/utils.ts", content: "", lines: 10, imports: [] },
+      { path: "src/lib/github.ts", content: "", lines: 10, imports: [] },
       { path: "src/middleware.ts", content: "", lines: 10, imports: [] },
       { path: "tests/unit/app.test.ts", content: "", lines: 10, imports: [] },
     ];
@@ -37,7 +37,7 @@ describe("buildGraph", () => {
 
     const nodeMap = new Map(nodes.map((n) => [n.id, n]));
     expect(nodeMap.get("src/app/api/route.ts")?.type).toBe("route");
-    expect(nodeMap.get("src/lib/utils.ts")?.type).toBe("service");
+    expect(nodeMap.get("src/lib/github.ts")?.type).toBe("service");
     expect(nodeMap.get("src/middleware.ts")?.type).toBe("middleware");
     expect(nodeMap.get("tests/unit/app.test.ts")?.type).toBe("test");
   });
