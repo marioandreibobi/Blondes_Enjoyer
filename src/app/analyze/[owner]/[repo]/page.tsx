@@ -14,6 +14,7 @@ import ErrorBoundary from "@/components/UI/ErrorBoundary";
 import OnboardingPanel from "@/components/Onboarding/OnboardingPanel";
 import BlueprintGrid from "@/components/UI/BlueprintGrid";
 import NavBar from "@/components/UI/NavBar";
+import ChatPanel from "@/components/Chat/ChatPanel";
 import type { AnalyzeResponse } from "@/types";
 
 export default function AnalyzePage(): React.ReactElement {
@@ -127,6 +128,9 @@ export default function AnalyzePage(): React.ReactElement {
           {/* Sidebar */}
           <Sidebar />
         </div>
+
+        {/* AI Chat */}
+        <ChatPanel />
       </motion.main>
     </ErrorBoundary>
   );
