@@ -80,6 +80,7 @@ function complexityToNumber(c: string): number {
   return 25;
 }
 
+
 // ─── Canvas node type ─────────────────────────────────────────
 
 interface CanvasNode extends GraphNode {

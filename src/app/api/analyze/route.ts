@@ -20,6 +20,22 @@ const MAX_FILES_TO_ANALYZE = 150;
 const GITHUB_CALL_TIMEOUT_MS = 25000;
 const AI_CALL_TIMEOUT_MS = 90000;
 
+// In-memory rate limiter for analysis requests
+const analyzeRateLimit = new Map<string, { count: number; firstRequest: number }>();
+const ANALYZE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_ANALYZE_PER_WINDOW = 10;
+
+function checkAnalyzeRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = analyzeRateLimit.get(ip);
+  if (!entry || now - entry.firstRequest > ANALYZE_WINDOW_MS) {
+    analyzeRateLimit.set(ip, { count: 1, firstRequest: now });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= MAX_ANALYZE_PER_WINDOW;
+}
+
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   let timeoutHandle: NodeJS.Timeout | null = null;
 
@@ -38,6 +54,14 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkAnalyzeRateLimit(clientIp)) {
+      return NextResponse.json(
+        { error: "Too many analysis requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { repoUrl, dualMode } = body;
 

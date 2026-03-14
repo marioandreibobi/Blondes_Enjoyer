@@ -7,6 +7,22 @@ const MAX_NODES_IN_CONTEXT = 100;
 const MAX_RETRIES = 4;
 const RETRY_BASE_DELAY = 3000;
 
+// In-memory rate limiter for chat requests
+const chatRateLimit = new Map<string, { count: number; firstRequest: number }>();
+const CHAT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_CHAT_PER_WINDOW = 20;
+
+function checkChatRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = chatRateLimit.get(ip);
+  if (!entry || now - entry.firstRequest > CHAT_WINDOW_MS) {
+    chatRateLimit.set(ip, { count: 1, firstRequest: now });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= MAX_CHAT_PER_WINDOW;
+}
+
 function buildChatSystemPrompt(context: ChatRequest["context"]): string {
   const nodesSummary = context.nodes
     .slice(0, MAX_NODES_IN_CONTEXT)
@@ -46,6 +62,14 @@ ${risksSummary || "None identified."}
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkChatRateLimit(clientIp)) {
+      return Response.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429 }
+      );
+    }
+
     const body: ChatRequest = await request.json();
     const { message, context, history } = body;
 
