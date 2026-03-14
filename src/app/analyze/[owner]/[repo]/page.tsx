@@ -12,6 +12,7 @@ import LoadingState from "@/components/UI/LoadingState";
 import ErrorBoundary from "@/components/UI/ErrorBoundary";
 import NavBar from "@/components/UI/NavBar";
 import ViewSwitcher from "@/components/UI/ViewSwitcher";
+import ChatPanel from "@/components/Chat/ChatPanel";
 import type { AnalyzeResponse } from "@/types";
 
 export default function AnalyzePage(): React.ReactElement {
@@ -126,6 +127,9 @@ export default function AnalyzePage(): React.ReactElement {
             <DiagramView />
           )}
         </div>
+
+        {/* AI Chat */}
+        <ChatPanel />
       </motion.main>
     </ErrorBoundary>
   );

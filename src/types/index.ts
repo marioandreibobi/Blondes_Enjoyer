@@ -87,6 +87,27 @@ export interface ApiError {
   status: number;
 }
 
+// ─── Chat ─────────────────────────────────────────────────────
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+}
+
+export interface ChatRequest {
+  message: string;
+  context: {
+    repo: RepoInfo;
+    nodes: Array<{ id: string; type: string; lines: number; complexity: string; description: string; risk: string | null }>;
+    links: Array<{ source: string; target: string }>;
+    aiSummary: string;
+    riskHotspots: RiskHotspot[];
+  };
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+}
+
 // ─── Parsed File (internal) ───────────────────────────────────
 
 export interface ParsedFile {
