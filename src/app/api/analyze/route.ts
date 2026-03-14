@@ -5,8 +5,9 @@ import { parseFile, resolveImports } from "@/lib/parser";
 import { buildGraph } from "@/lib/graph-builder";
 import { analyzeWithAI } from "@/lib/ai/analyze";
 import type { AnalysisResult, AnalyzeResponse, ParsedFile } from "@/types";
+import type { PrismaClient } from "@prisma/client";
 
-let prisma: ReturnType<typeof import("@/lib/db")["prisma"]> | null = null;
+let prisma: PrismaClient | null = null;
 if (process.env.DATABASE_URL) {
   try {
     prisma = require("@/lib/db").prisma;

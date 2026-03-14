@@ -6,54 +6,54 @@
 
 @layer base {
   :root {
-    --background: 240 20% 6%;
+    --background: 230 55% 7%;
     --foreground: 220 20% 92%;
-    --card: 240 18% 9%;
+    --card: 230 50% 8%;
     --card-foreground: 220 20% 92%;
-    --popover: 240 18% 9%;
+    --popover: 230 50% 8%;
     --popover-foreground: 220 20% 92%;
-    --primary: 225 80% 60%;
+    --primary: 239 84% 67%;
     --primary-foreground: 220 20% 98%;
-    --secondary: 240 15% 14%;
+    --secondary: 230 40% 12%;
     --secondary-foreground: 220 20% 92%;
-    --muted: 240 15% 14%;
+    --muted: 230 40% 12%;
     --muted-foreground: 225 15% 55%;
     --accent: 10 70% 55%;
     --accent-foreground: 220 20% 98%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 220 20% 98%;
-    --border: 240 15% 16%;
-    --input: 240 15% 16%;
-    --ring: 225 80% 60%;
+    --border: 230 30% 14%;
+    --input: 230 30% 14%;
+    --ring: 239 84% 67%;
     --radius: 0.625rem;
-    --sidebar-background: 240 18% 8%;
+    --sidebar-background: 230 55% 6%;
     --sidebar-foreground: 220 20% 92%;
-    --sidebar-border: 240 15% 16%;
+    --sidebar-border: 230 30% 14%;
   }
 
   .dark {
-    --background: 240 20% 6%;
+    --background: 230 55% 7%;
     --foreground: 220 20% 92%;
-    --card: 240 18% 9%;
+    --card: 230 50% 8%;
     --card-foreground: 220 20% 92%;
-    --popover: 240 18% 9%;
+    --popover: 230 50% 8%;
     --popover-foreground: 220 20% 92%;
-    --primary: 225 80% 60%;
+    --primary: 239 84% 67%;
     --primary-foreground: 220 20% 98%;
-    --secondary: 240 15% 14%;
+    --secondary: 230 40% 12%;
     --secondary-foreground: 220 20% 92%;
-    --muted: 240 15% 14%;
+    --muted: 230 40% 12%;
     --muted-foreground: 225 15% 55%;
     --accent: 10 70% 55%;
     --accent-foreground: 220 20% 98%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 220 20% 98%;
-    --border: 240 15% 16%;
-    --input: 240 15% 16%;
-    --ring: 225 80% 60%;
-    --sidebar-background: 240 18% 8%;
+    --border: 230 30% 14%;
+    --input: 230 30% 14%;
+    --ring: 239 84% 67%;
+    --sidebar-background: 230 55% 6%;
     --sidebar-foreground: 220 20% 92%;
-    --sidebar-border: 240 15% 16%;
+    --sidebar-border: 230 30% 14%;
   }
 }
 
@@ -63,6 +63,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'JetBrains Mono', monospace;
   }
 }
 
