@@ -677,41 +677,7 @@ export default function ForceGraph(): React.ReactElement {
         backgroundSize: "24px 24px",
       }}
     >
-      {/* Filter buttons */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 flex-wrap">
-        {filterTypes.map(({ type, label }) => {
-          const colors = type !== "all" ? NODE_COLORS[type] : null;
-          return (
-            <button
-              key={type}
-              onClick={() => handleFilterClick(type)}
-              className="px-2.5 py-1 text-[11px] rounded-full border transition-all"
-              style={{
-                background:
-                  filterCategory === type
-                    ? colors
-                      ? colors.bg
-                      : "rgba(56, 189, 248, 0.15)"
-                    : "rgba(11,17,32,0.7)",
-                borderColor:
-                  filterCategory === type
-                    ? colors
-                      ? colors.border
-                      : "rgba(56, 189, 248, 0.5)"
-                    : "rgba(255,255,255,0.08)",
-                color:
-                  filterCategory === type
-                    ? colors
-                      ? colors.text
-                      : "#38bdf8"
-                    : "#64748b",
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+
 
       {/* Selected node info panel */}
       {selectedNode && (

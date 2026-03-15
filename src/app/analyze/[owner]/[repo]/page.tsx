@@ -396,29 +396,31 @@ export default function AnalyzePage(): React.ReactElement {
           <ViewSwitcher value={activeView} onSwitch={setActiveView} onExport={handleExport} />
         </header>
 
-        {/* ─── Category filter tabs ─── */}
-        <div
-          className="flex items-center gap-1 px-5 py-2"
-          style={{ background: "rgba(10,14,39,0.9)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-        >
-          {CATEGORY_TABS.map((tab) => {
-            const isActive = (activeCategory ?? "all") === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveCategory(tab.id === "all" ? null : tab.id)}
-                className="px-3 py-1 rounded-full text-xs font-mono transition-all"
-                style={
-                  isActive
-                    ? { background: "rgba(99,102,241,0.8)", color: "#fff" }
-                    : { background: "transparent", color: "rgba(255,255,255,0.45)" }
-                }
-              >
-                {tab.name}
-              </button>
-            );
-          })}
-        </div>
+        {/* ─── Category filter tabs (force graph only) ─── */}
+        {activeView === "3d" && (
+          <div
+            className="flex items-center gap-1 px-5 py-2"
+            style={{ background: "rgba(10,14,39,0.9)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+          >
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = (activeCategory ?? "all") === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveCategory(tab.id === "all" ? null : tab.id)}
+                  className="px-3 py-1 rounded-full text-xs font-mono transition-all"
+                  style={
+                    isActive
+                      ? { background: "rgba(99,102,241,0.8)", color: "#fff" }
+                      : { background: "transparent", color: "rgba(255,255,255,0.45)" }
+                  }
+                >
+                  {tab.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* ─── Body ─── */}
         <div className="flex-1 flex overflow-hidden">
