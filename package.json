@@ -28,7 +28,6 @@
     "clsx": "^2.1.1",
     "d3-force": "^3.0.0",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.1.6",
     "force-graph": "^1.51.2",
     "framer-motion": "^12.36.0",
     "lucide-react": "^0.577.0",
@@ -54,6 +53,7 @@
     "@types/three": "^0.183.1",
     "@vitejs/plugin-react": "^6.0.1",
     "dotenv": "^17.3.1",
+    "eslint-config-next": "16.1.6",
     "prisma": "^5.22.0",
     "vitest": "^4.1.0"
   }

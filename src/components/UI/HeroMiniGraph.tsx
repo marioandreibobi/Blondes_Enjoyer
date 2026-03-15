@@ -86,6 +86,12 @@ export default function HeroMiniGraph(): React.ReactElement {
   const animRef = useRef<number>(0);
   const [, forceRender] = useState(0);
 
+  // Pan & zoom state
+  const panOffset = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
+  const isDragging = useRef(false);
+  const lastMouse = useRef({ x: 0, y: 0 });
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -101,9 +107,10 @@ export default function HeroMiniGraph(): React.ReactElement {
     ctx.clearRect(0, 0, w, h);
 
     // Camera: center on origin, zoom to fit
-    const zoom = Math.min(w, h) / 500;
-    const panX = w / 2;
-    const panY = h / 2;
+    const baseZoom = Math.min(w, h) / 500;
+    const zoom = baseZoom * zoomRef.current;
+    const panX = w / 2 + panOffset.current.x;
+    const panY = h / 2 + panOffset.current.y;
 
     ctx.save();
     ctx.translate(panX, panY);
@@ -246,11 +253,44 @@ export default function HeroMiniGraph(): React.ReactElement {
     return () => window.removeEventListener("resize", onResize);
   }, [draw]);
 
+  // Mouse drag-to-pan
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    lastMouse.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging.current) return;
+    const dx = e.clientX - lastMouse.current.x;
+    const dy = e.clientY - lastMouse.current.y;
+    panOffset.current.x += dx;
+    panOffset.current.y += dy;
+    lastMouse.current = { x: e.clientX, y: e.clientY };
+    draw();
+  }, [draw]);
+
+  const handleMouseUp = useCallback(() => {
+    isDragging.current = false;
+  }, []);
+
+  // Scroll-to-zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    zoomRef.current = Math.max(0.3, Math.min(4, zoomRef.current * factor));
+    draw();
+  }, [draw]);
+
   return (
     <canvas
       ref={canvasRef}
-      className="w-full h-full min-h-[320px] rounded-xl"
+      className="w-full h-full min-h-[480px] rounded-xl cursor-grab active:cursor-grabbing"
       style={{ background: "transparent" }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onWheel={handleWheel}
     />
   );
 }

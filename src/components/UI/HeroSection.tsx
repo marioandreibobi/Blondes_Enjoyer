@@ -182,7 +182,7 @@ export default function HeroSection(): React.ReactElement {
             <div className="flex justify-end mb-3">
               <ViewSwitcher value={view} onSwitch={setView} />
             </div>
-            <div className="rounded-2xl bg-glass border-glass shadow-blueprint overflow-hidden min-h-[320px]">
+            <div className="rounded-2xl bg-glass border-glass shadow-blueprint overflow-hidden min-h-[480px]">
               {view === "3d" ? <HeroMiniGraph /> : <CodescapeVisual />}
             </div>
           </motion.div>
