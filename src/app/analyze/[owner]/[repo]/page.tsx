@@ -2,20 +2,22 @@
 
 import React, { useEffect } from "react";
 import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { useGraphStore } from "@/store/graph-store";
 import ForceGraph from "@/components/Graph/ForceGraph";
+import DiagramView from "@/components/Graph/DiagramView";
 import NodeTooltip from "@/components/Graph/NodeTooltip";
-import GraphControls from "@/components/Graph/GraphControls";
-import Legend from "@/components/Legend/Legend";
 import Sidebar from "@/components/UI/Sidebar";
 import LoadingState from "@/components/UI/LoadingState";
 import ErrorBoundary from "@/components/UI/ErrorBoundary";
-import OnboardingPanel from "@/components/Onboarding/OnboardingPanel";
+import NavBar from "@/components/UI/NavBar";
+import ViewSwitcher from "@/components/UI/ViewSwitcher";
+import ChatPanel from "@/components/Chat/ChatPanel";
 import type { AnalyzeResponse } from "@/types";
 
 export default function AnalyzePage(): React.ReactElement {
   const params = useParams<{ owner: string; repo: string }>();
-  const { setAnalysisResult, setLoading, setError, loading, error, analysisResult } =
+  const { setAnalysisResult, setLoading, setError, loading, error, analysisResult, activeView, setActiveView } =
     useGraphStore();
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function AnalyzePage(): React.ReactElement {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center" style={{ background: "#0a0e27" }}>
         <LoadingState />
       </main>
     );
@@ -55,17 +57,24 @@ export default function AnalyzePage(): React.ReactElement {
 
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <p className="text-lg font-medium text-destructive">Error</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
+      <main className="min-h-screen flex items-center justify-center" style={{ background: "#0a0e27" }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="text-center space-y-3 rounded-xl p-8"
+          style={{ background: "rgba(15,19,40,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          <p className="text-lg font-medium text-red-400">Error</p>
+          <p className="text-sm text-slate-400 max-w-sm">{error}</p>
           <a
             href="/"
-            className="inline-block mt-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="inline-block mt-2 rounded-lg px-5 py-2 text-sm font-medium text-white hover:opacity-90 transition-all"
+            style={{ background: "rgba(99,102,241,0.8)" }}
           >
             Back to Home
           </a>
-        </div>
+        </motion.div>
       </main>
     );
   }
@@ -74,39 +83,54 @@ export default function AnalyzePage(): React.ReactElement {
 
   return (
     <ErrorBoundary>
-      <main className="h-screen flex flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
-          <a href="/" className="text-lg font-bold text-foreground">
-            Code<span className="text-primary">Atlas</span>
-          </a>
-          <span className="text-sm text-muted-foreground">
-            {analysisResult.repo.owner}/{analysisResult.repo.name}
-            <span className="ml-2 text-xs">
-              ({analysisResult.repo.analyzedFiles}/{analysisResult.repo.totalFiles} files)
+      <NavBar showCta={false} />
+      <motion.main
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="h-screen flex flex-col pt-14"
+        style={{ background: "#0a0e27" }}
+      >
+        {/* Minimal header bar */}
+        <header
+          className="flex items-center justify-between px-5 py-2.5"
+          style={{ background: "rgba(10,14,39,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className="text-sm font-mono font-medium"
+              style={{ color: "rgba(255,255,255,0.7)" }}
+            >
+              {analysisResult.repo.owner}/{analysisResult.repo.name}
             </span>
-          </span>
+            <span
+              className="text-xs font-mono px-2 py-0.5 rounded-md"
+              style={{ color: "rgba(255,255,255,0.4)", background: "rgba(255,255,255,0.04)" }}
+            >
+              {analysisResult.repo.analyzedFiles}/{analysisResult.repo.totalFiles} files
+            </span>
+          </div>
+          <ViewSwitcher value={activeView} onSwitch={setActiveView} />
         </header>
 
         {/* Body */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Graph area */}
-          <div className="flex-1 relative">
-            <ForceGraph />
-            <NodeTooltip />
-
-            {/* Controls overlay */}
-            <div className="absolute top-3 left-3 z-30 space-y-2 max-w-xs">
-              <GraphControls />
-              <Legend />
-              <OnboardingPanel />
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <Sidebar />
+          {activeView === "3d" ? (
+            <>
+              <div className="flex-1 relative">
+                <ForceGraph />
+                <NodeTooltip />
+              </div>
+              <Sidebar />
+            </>
+          ) : (
+            <DiagramView />
+          )}
         </div>
-      </main>
+
+        {/* AI Chat */}
+        <ChatPanel />
+      </motion.main>
     </ErrorBoundary>
   );
 }

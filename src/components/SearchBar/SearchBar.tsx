@@ -16,7 +16,8 @@ export default function SearchBar(): React.ReactElement {
     e.preventDefault();
     setError(null);
 
-    const match = url.trim().match(githubUrlPattern);
+    const cleaned = url.trim().replace(/\.git\/?$/, "");
+    const match = cleaned.match(githubUrlPattern);
     if (!match) {
       setError("Please enter a valid GitHub URL (https://github.com/owner/repo)");
       return;

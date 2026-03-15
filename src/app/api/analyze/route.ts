@@ -4,8 +4,17 @@ import { fetchRepoTree, fetchFileContent, isAnalyzableFile, fetchRepoLanguage } 
 import { parseFile, resolveImports } from "@/lib/parser";
 import { buildGraph } from "@/lib/graph-builder";
 import { analyzeWithAI } from "@/lib/ai/analyze";
-import { prisma } from "@/lib/db";
 import type { AnalysisResult, AnalyzeResponse, ParsedFile } from "@/types";
+import type { PrismaClient } from "@prisma/client";
+
+let prisma: PrismaClient | null = null;
+if (process.env.DATABASE_URL) {
+  try {
+    prisma = require("@/lib/db").prisma;
+  } catch {
+    prisma = null;
+  }
+}
 
 const MAX_FILES_TO_ANALYZE = 150;
 
@@ -33,24 +42,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    // Check cache
-    const existing = await prisma.analysis.findUnique({
-      where: { repoOwner_repoName: { repoOwner: owner, repoName: repo } },
-    });
-    if (existing) {
-      const result: AnalysisResult = {
-        repo: {
-          name: existing.repoName,
-          owner: existing.repoOwner,
-          language: existing.language,
-          totalFiles: existing.totalFiles,
-          analyzedFiles: existing.analyzedFiles,
-        },
-        graph: existing.graphJson as unknown as AnalysisResult["graph"],
-        ai: existing.aiJson as unknown as AnalysisResult["ai"],
-      };
-      const response: AnalyzeResponse = { id: existing.id, result };
-      return NextResponse.json(response);
+    // Check cache (skip if no database)
+    if (prisma) {
+      try {
+        const existing = await prisma.analysis.findUnique({
+          where: { repoOwner_repoName: { repoOwner: owner, repoName: repo } },
+        });
+        if (existing) {
+          const result: AnalysisResult = {
+            repo: {
+              name: existing.repoName,
+              owner: existing.repoOwner,
+              language: existing.language,
+              totalFiles: existing.totalFiles,
+              analyzedFiles: existing.analyzedFiles,
+            },
+            graph: existing.graphJson as unknown as AnalysisResult["graph"],
+            ai: existing.aiJson as unknown as AnalysisResult["ai"],
+          };
+          const response: AnalyzeResponse = { id: existing.id, result };
+          return NextResponse.json(response);
+        }
+      } catch {
+        // DB unavailable, continue without cache
+      }
     }
 
     // Fetch repo tree
@@ -87,25 +102,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // AI analysis
     const language = await fetchRepoLanguage(owner, repo);
-    const { ai, descriptions } = await analyzeWithAI(
-      `${owner}/${repo}`,
-      graph.nodes,
-      graph.links
-    );
+    let ai: AnalysisResult["ai"] = {
+      summary: "",
+      riskHotspots: [],
+      onboarding: { steps: [] },
+    };
+    try {
+      const aiResult = await analyzeWithAI(
+        `${owner}/${repo}`,
+        graph.nodes,
+        graph.links
+      );
+      ai = aiResult.ai;
 
-    // Merge AI descriptions into nodes
-    for (const node of graph.nodes) {
-      if (descriptions[node.id]) {
-        node.description = descriptions[node.id];
+      // Merge AI descriptions into nodes
+      for (const node of graph.nodes) {
+        if (aiResult.descriptions[node.id]) {
+          node.description = aiResult.descriptions[node.id];
+        }
       }
-    }
 
-    // Merge AI risk flags
-    for (const hotspot of ai.riskHotspots) {
-      const node = graph.nodes.find((n) => n.id === hotspot.file);
-      if (node) {
-        node.risk = hotspot.reason;
+      // Merge AI risk flags
+      for (const hotspot of ai.riskHotspots) {
+        const node = graph.nodes.find((n) => n.id === hotspot.file);
+        if (node) {
+          node.risk = hotspot.reason;
+        }
       }
+    } catch (aiErr) {
+      console.warn("AI analysis failed, returning graph without AI insights:", aiErr);
     }
 
     const result: AnalysisResult = {
@@ -120,25 +145,54 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ai,
     };
 
-    // Persist
-    const saved = await prisma.analysis.create({
-      data: {
-        repoOwner: owner,
-        repoName: repo,
-        language,
-        totalFiles,
-        analyzedFiles: parsedFiles.length,
-        graphJson: graph as object,
-        aiJson: ai as object,
-      },
-    });
+    // Persist (skip if no database)
+    let savedId: string | undefined;
+    if (prisma) {
+      try {
+        const saved = await prisma.analysis.create({
+          data: {
+            repoOwner: owner,
+            repoName: repo,
+            language,
+            totalFiles,
+            analyzedFiles: parsedFiles.length,
+            graphJson: graph as object,
+            aiJson: ai as object,
+          },
+        });
+        savedId = saved.id;
+      } catch {
+        // DB unavailable, continue without persisting
+      }
+    }
 
-    const response: AnalyzeResponse = { id: saved.id, result };
+    const response: AnalyzeResponse = { id: savedId ?? "no-db", result };
     return NextResponse.json(response);
   } catch (err) {
     console.error("Analysis failed:", err);
+    const status = (err as { status?: number }).status;
+    const code = (err as { code?: string }).code;
+
+    if (status === 404) {
+      return NextResponse.json(
+        { error: "Repository not found. Check the URL and try again." },
+        { status: 404 }
+      );
+    }
+
+    if (status === 403) {
+      return NextResponse.json(
+        { error: "GitHub API rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
+    }
+
+    const message =
+      code === "concurrency_limit_exceeded"
+        ? "AI service is busy. Please wait a moment and try again."
+        : "Analysis failed. Please try again.";
     return NextResponse.json(
-      { error: "Analysis failed. Please try again." },
+      { error: message },
       { status: 500 }
     );
   }

@@ -17,17 +17,35 @@ export async function analyzeWithAI(
   const client = getAIClient();
   const prompt = buildAnalysisPrompt(repoName, nodes, links);
 
-  const completion = await client.chat.completions.create({
-    model: "Qwen/Qwen2-72B-Instruct",
-    max_tokens: 4096,
-    messages: [
-      {
-        role: "system",
-        content: "You are a code analysis assistant. Return ONLY valid JSON, no markdown fences, no explanation.",
-      },
-      { role: "user", content: prompt },
-    ],
-  });
+  const MAX_RETRIES = 5;
+  let completion;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      completion = await client.chat.completions.create({
+        model: "Qwen/Qwen2-72B-Instruct",
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "system",
+            content: "You are a code analysis assistant. Return ONLY valid JSON, no markdown fences, no explanation.",
+          },
+          { role: "user", content: prompt },
+        ],
+      });
+      break;
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code;
+      if (code === "concurrency_limit_exceeded" && attempt < MAX_RETRIES - 1) {
+        await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  if (!completion) {
+    throw new Error("AI request failed after retries");
+  }
 
   const text = completion.choices[0]?.message?.content;
   if (!text) {

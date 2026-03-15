@@ -15,10 +15,14 @@ export async function fetchRepoTree(
 ): Promise<RepoTreeItem[]> {
   const octokit = getOctokit();
 
+  // Get default branch first — "HEAD" doesn't work for all repos
+  const { data: repoData } = await octokit.repos.get({ owner, repo });
+  const defaultBranch = repoData.default_branch;
+
   const { data } = await octokit.git.getTree({
     owner,
     repo,
-    tree_sha: "HEAD",
+    tree_sha: defaultBranch,
     recursive: "true",
   });
 
@@ -64,6 +68,7 @@ const ANALYZABLE_EXTENSIONS = new Set([
   ".mjs",
   ".cts",
   ".cjs",
+  ".py",
 ]);
 
 export function isAnalyzableFile(path: string): boolean {
