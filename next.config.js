@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== "production";
+
 const nextConfig = {
   output: "standalone",
   eslint: {
@@ -20,7 +22,7 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://api.stripe.com https://api.featherless.ai https://raw.githubusercontent.com; frame-src https://js.stripe.com https://checkout.stripe.com; form-action 'self'; base-uri 'self'; object-src 'none';",
+            value: `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://api.stripe.com https://api.featherless.ai https://raw.githubusercontent.com; frame-src https://js.stripe.com https://checkout.stripe.com; form-action 'self'; base-uri 'self'; object-src 'none';`,
           },
         ],
       },
