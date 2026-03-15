@@ -4,8 +4,177 @@ import { fetchRepoTree, fetchFileContent, isAnalyzableFile, fetchRepoLanguage } 
 import { parseFile, resolveImports } from "@/lib/parser";
 import { buildGraph } from "@/lib/graph-builder";
 import { analyzeWithAI, analyzeWithDeepSeek } from "@/lib/ai/analyze";
-import type { AnalysisResult, AnalyzeResponse, ParsedFile, AIAnalysis } from "@/types";
+import type { AnalysisResult, AnalyzeResponse, ParsedFile, AIAnalysis, GraphNode, GraphLink } from "@/types";
 import type { PrismaClient } from "@prisma/client";
+
+/* ─── Local fallback when AI is unavailable ─── */
+function buildArchitectureFallback(
+  repoName: string,
+  nodes: GraphNode[],
+  links: GraphLink[]
+): { ai: AIAnalysis; descriptions: Record<string, string> } {
+  const sorted = [...nodes].sort((a, b) => b.importedBy - a.importedBy);
+  const highComplexity = nodes.filter((n) => n.complexity === "high");
+  const entryPoints = nodes.filter((n) => n.type === "entry" || n.type === "route");
+  const services = nodes.filter((n) => n.type === "service" || n.type === "controller");
+
+  const descriptions: Record<string, string> = {};
+  for (const n of nodes) {
+    descriptions[n.id] = `${n.type} file (${n.lines} lines, ${n.imports} imports, used by ${n.importedBy} files)`;
+  }
+
+  const riskHotspots: AIAnalysis["riskHotspots"] = sorted
+    .filter((n) => n.importedBy >= 3 || n.complexity === "high" || n.lines > 150)
+    .slice(0, 8)
+    .map((n) => ({
+      file: n.id,
+      reason:
+        n.importedBy >= 5
+          ? `High fan-in: ${n.importedBy} files depend on this — changes here have wide blast radius`
+          : n.complexity === "high"
+            ? `High complexity (${n.lines} lines, ${n.imports} imports) — harder to maintain and review`
+            : `Large file (${n.lines} lines) with ${n.importedBy} dependents — potential bottleneck`,
+      severity: (n.importedBy >= 5 || (n.complexity === "high" && n.importedBy >= 3) ? "high" : n.complexity === "high" || n.importedBy >= 3 ? "medium" : "low") as "low" | "medium" | "high",
+    }));
+
+  const steps: AIAnalysis["onboarding"]["steps"] = [];
+  if (entryPoints.length > 0) {
+    steps.push({
+      title: "Start at the entry points",
+      file: entryPoints.slice(0, 3).map((n) => n.id),
+      explanation: "These files bootstrap the application — understand the request/lifecycle flow from here.",
+    });
+  }
+  if (services.length > 0) {
+    steps.push({
+      title: "Explore core services",
+      file: services.slice(0, 3).map((n) => n.id),
+      explanation: "Services and controllers contain the main business logic of the application.",
+    });
+  }
+  const hubs = sorted.slice(0, 3);
+  if (hubs.length > 0) {
+    steps.push({
+      title: "Understand the most-imported modules",
+      file: hubs.map((n) => n.id),
+      explanation: `These files are imported by the most other files (up to ${hubs[0].importedBy} dependents) — they form the architectural backbone.`,
+    });
+  }
+  if (highComplexity.length > 0) {
+    steps.push({
+      title: "Review high-complexity files",
+      file: highComplexity.slice(0, 3).map((n) => n.id),
+      explanation: "These files have the highest complexity scores — they are the hardest to modify safely.",
+    });
+  }
+  const models = nodes.filter((n) => n.type === "model" || n.type === "config");
+  if (models.length > 0) {
+    steps.push({
+      title: "Check data models and config",
+      file: models.slice(0, 3).map((n) => n.id),
+      explanation: "Models and configuration define the data layer and runtime behavior.",
+    });
+  }
+
+  return {
+    ai: {
+      summary: `${repoName} contains ${nodes.length} analyzed files with ${links.length} dependency links. The most-connected module is ${sorted[0]?.id ?? "N/A"} (imported by ${sorted[0]?.importedBy ?? 0} files). ${highComplexity.length} file(s) have high complexity. The codebase has ${entryPoints.length} entry/route files and ${services.length} service/controller files.`,
+      riskHotspots,
+      onboarding: { steps },
+    },
+    descriptions,
+  };
+}
+
+function buildSecurityFallback(
+  repoName: string,
+  nodes: GraphNode[],
+  links: GraphLink[]
+): { ai: AIAnalysis; descriptions: Record<string, string> } {
+  const descriptions: Record<string, string> = {};
+  for (const n of nodes) {
+    descriptions[n.id] = `${n.type} — attack surface: ${n.type === "route" || n.type === "middleware" ? "HIGH (handles external input)" : n.type === "model" ? "MEDIUM (data layer)" : "LOW"}`;
+  }
+
+  const securityRelevant = nodes.filter(
+    (n) => n.type === "route" || n.type === "middleware" || n.type === "controller"
+  );
+  const dataLayer = nodes.filter((n) => n.type === "model" || n.id.toLowerCase().includes("auth") || n.id.toLowerCase().includes("db"));
+  const configFiles = nodes.filter((n) => n.type === "config");
+  const sorted = [...nodes].sort((a, b) => b.importedBy - a.importedBy);
+
+  const riskHotspots: AIAnalysis["riskHotspots"] = [];
+
+  for (const n of securityRelevant.slice(0, 4)) {
+    riskHotspots.push({
+      file: n.id,
+      reason: `Handles external requests — potential injection or auth bypass surface (${n.lines} lines, complexity: ${n.complexity})`,
+      severity: n.complexity === "high" ? "high" : "medium",
+    });
+  }
+  for (const n of dataLayer.slice(0, 3)) {
+    riskHotspots.push({
+      file: n.id,
+      reason: `Data/auth layer — risk of data exposure, insecure queries, or broken access control`,
+      severity: "high",
+    });
+  }
+  for (const n of configFiles.slice(0, 2)) {
+    riskHotspots.push({
+      file: n.id,
+      reason: `Configuration file — may contain secrets, insecure defaults, or CORS misconfiguration`,
+      severity: "medium",
+    });
+  }
+
+  const steps: AIAnalysis["onboarding"]["steps"] = [];
+  if (securityRelevant.length > 0) {
+    steps.push({
+      title: "Audit request handlers",
+      file: securityRelevant.slice(0, 3).map((n) => n.id),
+      explanation: "These files handle external input — check for injection, auth, and input validation.",
+    });
+  }
+  const authFiles = nodes.filter((n) => n.id.toLowerCase().includes("auth"));
+  if (authFiles.length > 0) {
+    steps.push({
+      title: "Review authentication flow",
+      file: authFiles.map((n) => n.id),
+      explanation: "Verify token handling, session management, and credential storage.",
+    });
+  }
+  if (dataLayer.length > 0) {
+    steps.push({
+      title: "Inspect data access layer",
+      file: dataLayer.slice(0, 3).map((n) => n.id),
+      explanation: "Check for SQL/NoSQL injection, insecure queries, and data exposure risks.",
+    });
+  }
+  if (configFiles.length > 0) {
+    steps.push({
+      title: "Check configuration and secrets",
+      file: configFiles.map((n) => n.id),
+      explanation: "Ensure no hardcoded secrets, proper CORS settings, and secure defaults.",
+    });
+  }
+  const highFanIn = sorted.filter((n) => n.importedBy >= 3).slice(0, 3);
+  if (highFanIn.length > 0) {
+    steps.push({
+      title: "Assess supply-chain risk in shared modules",
+      file: highFanIn.map((n) => n.id),
+      explanation: "Widely imported modules amplify the impact of any vulnerability they contain.",
+    });
+  }
+
+  return {
+    ai: {
+      summary: `Security analysis of ${repoName}: ${securityRelevant.length} files handle external input (routes/middleware/controllers), ${dataLayer.length} files touch data/auth, and ${configFiles.length} config files may expose secrets. The primary attack surface is the ${securityRelevant.length} request-handling files. ${riskHotspots.filter((r) => r.severity === "high").length} high-severity risks identified.`,
+      riskHotspots,
+      onboarding: { steps },
+    },
+    descriptions,
+  };
+}
 
 let prisma: PrismaClient | null = null;
 if (process.env.DATABASE_URL) {
@@ -204,7 +373,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
       }
     } else {
-      console.warn("AI analysis failed, returning graph without AI insights:", settledA.reason);
+      console.warn("AI analysis failed, using local fallback:", settledA.reason);
+      const fallback = buildArchitectureFallback(repoFullName, graph.nodes, graph.links);
+      ai = fallback.ai;
+      for (const node of graph.nodes) {
+        if (fallback.descriptions[node.id]) {
+          node.description = fallback.descriptions[node.id];
+        }
+      }
+      for (const hotspot of ai.riskHotspots) {
+        const node = graph.nodes.find((n) => n.id === hotspot.file);
+        if (node) node.risk = hotspot.reason;
+      }
     }
 
     const result: AnalysisResult = {
@@ -240,7 +420,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         }
       } else if (settledB?.status === "rejected") {
-        console.warn("DeepSeek analysis failed:", settledB.reason);
+        console.warn("DeepSeek analysis failed, using security fallback:", settledB.reason);
+        const fallbackB = buildSecurityFallback(repoFullName, graphNodesB, graph.links);
+        aiB = fallbackB.ai;
+        for (const node of graphNodesB) {
+          if (fallbackB.descriptions[node.id]) {
+            node.description = fallbackB.descriptions[node.id];
+          }
+        }
+        for (const hotspot of aiB.riskHotspots) {
+          const node = graphNodesB.find((n) => n.id === hotspot.file);
+          if (node) node.risk = hotspot.reason;
+        }
       }
 
       resultB = {

@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { X, AlertTriangle, GitBranch, FileCode, ChevronRight } from "lucide-react";
 import { useGraphStore } from "@/store/graph-store";
+import FileViewer from "@/components/Graph/FileViewer";
 import type { GraphNode, NodeType } from "@/types";
 
 // ─── Category mapping ─────────────────────────────────────────
@@ -125,16 +127,18 @@ function toDisplayNode(node: GraphNode, depNames: string[]): DisplayNode {
 interface NodeCardProps {
   node: DisplayNode;
   onClick: (node: DisplayNode) => void;
+  onDoubleClick: (node: DisplayNode) => void;
   isSelected: boolean;
 }
 
-function NodeCard({ node, onClick, isSelected }: NodeCardProps): React.ReactElement {
+function NodeCard({ node, onClick, onDoubleClick, isSelected }: NodeCardProps): React.ReactElement {
   const colors = NODE_COLORS[node.category];
   const riskColor = getRiskColor(node.risk);
 
   return (
     <button
       onClick={() => onClick(node)}
+      onDoubleClick={() => onDoubleClick(node)}
       style={{
         background: isSelected ? colors.bg : "rgba(15, 23, 42, 0.6)",
         border: `1px solid ${isSelected ? colors.border : "rgba(56, 189, 248, 0.08)"}`,
@@ -185,9 +189,10 @@ function NodeCard({ node, onClick, isSelected }: NodeCardProps): React.ReactElem
 interface InspectorPanelProps {
   node: DisplayNode;
   onClose: () => void;
+  onViewSource: (path: string) => void;
 }
 
-function InspectorPanel({ node, onClose }: InspectorPanelProps): React.ReactElement {
+function InspectorPanel({ node, onClose, onViewSource }: InspectorPanelProps): React.ReactElement {
   const colors = NODE_COLORS[node.category];
   const riskColor = getRiskColor(node.risk);
   const riskLevel = getRiskLevel(node.risk);
@@ -287,6 +292,20 @@ function InspectorPanel({ node, onClose }: InspectorPanelProps): React.ReactElem
             {NODE_TYPE_LABELS[node.category]}
           </span>
         </div>
+
+        {/* View Source button */}
+        <button
+          onClick={() => onViewSource(node.path)}
+          className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium transition-all hover:scale-[1.02]"
+          style={{
+            background: "rgba(56, 189, 248, 0.1)",
+            border: "1px solid rgba(56, 189, 248, 0.2)",
+            color: "#38bdf8",
+          }}
+        >
+          <FileCode size={13} />
+          View Source Code
+        </button>
       </div>
     </div>
   );
@@ -298,9 +317,15 @@ export default function DiagramView(): React.ReactElement {
   const analysisResult = useGraphStore((s) => s.analysisResult);
   const typeFilters = useGraphStore((s) => s.typeFilters);
   const complexityFilter = useGraphStore((s) => s.complexityFilter);
+  const params = useParams<{ owner: string; repo: string }>();
 
   const [selectedNode, setSelectedNode] = useState<DisplayNode | null>(null);
   const [filter, setFilter] = useState<CategoryType | "all">("all");
+  const [viewingFile, setViewingFile] = useState<string | null>(null);
+
+  const handleDoubleClick = useCallback((node: DisplayNode): void => {
+    setViewingFile(node.path);
+  }, []);
 
   // Build display nodes from store data
   const displayNodes = useMemo((): DisplayNode[] => {
@@ -424,6 +449,7 @@ export default function DiagramView(): React.ReactElement {
                         key={node.id}
                         node={node}
                         onClick={setSelectedNode}
+                        onDoubleClick={handleDoubleClick}
                         isSelected={selectedNode?.id === node.id}
                       />
                     ))}
@@ -444,7 +470,7 @@ export default function DiagramView(): React.ReactElement {
         }}
       >
         {selectedNode ? (
-          <InspectorPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
+          <InspectorPanel node={selectedNode} onClose={() => setSelectedNode(null)} onViewSource={(path) => setViewingFile(path)} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
             <div
@@ -459,9 +485,22 @@ export default function DiagramView(): React.ReactElement {
               <br />
               and risk analysis
             </p>
+            <p className="text-[10px] text-slate-600 mt-2">
+              Double-click to view source code
+            </p>
           </div>
         )}
       </div>
+
+      {/* File Viewer overlay */}
+      {viewingFile && (
+        <FileViewer
+          owner={params.owner}
+          repo={params.repo}
+          filePath={viewingFile}
+          onClose={() => setViewingFile(null)}
+        />
+      )}
     </div>
   );
 }
