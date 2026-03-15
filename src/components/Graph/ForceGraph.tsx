@@ -103,6 +103,16 @@ interface CanvasNode extends GraphNode {
   name: string;
   category: CategoryType;
   complexityNum: number;
+  hubScore: number; // 0–1, normalized importedBy (1 = most imported)
+}
+
+// Hub threshold: nodes above this score get persistent glow + labels
+const HUB_SCORE_THRESHOLD = 0.3;
+
+function getNodeRadius(node: CanvasNode): number {
+  const base = Math.max(6, Math.min(14, 5 + node.complexityNum / 12));
+  const hubBonus = node.hubScore * 12;
+  return base + hubBonus;
 }
 
 interface CanvasEdge {
@@ -191,6 +201,8 @@ export default function ForceGraph(): React.ReactElement {
     if (!canvas) return;
 
     let sourceNodes = analysisResult.graph.nodes;
+    // Only show files that have at least one dependency connection
+    sourceNodes = sourceNodes.filter((n) => n.imports > 0 || n.importedBy > 0);
     if (typeFilters.size > 0) {
       sourceNodes = sourceNodes.filter((n) => !typeFilters.has(n.type));
     }
@@ -199,6 +211,9 @@ export default function ForceGraph(): React.ReactElement {
     }
 
     const scaleFactor = sourceNodes.length > 80 ? 1 + sourceNodes.length / 200 : 1;
+
+    // Compute max importedBy for hub score normalization
+    const maxImportedBy = Math.max(1, ...sourceNodes.map((n) => n.importedBy));
 
     const initialized: CanvasNode[] = sourceNodes.map((n, i) => {
       const cat = getCategory(n.type);
@@ -214,6 +229,7 @@ export default function ForceGraph(): React.ReactElement {
         name: n.id.split("/").pop() ?? n.id,
         category: cat,
         complexityNum: complexityToNumber(n.complexity),
+        hubScore: n.importedBy / maxImportedBy,
       };
     });
 
@@ -288,7 +304,19 @@ export default function ForceGraph(): React.ReactElement {
       const riskColor = getRiskColor(node.risk);
       const isHovered = hoveredNode?.id === node.id;
       const isSelected = selectedNode?.id === node.id;
-      const radius = Math.max(6, Math.min(14, 5 + node.complexityNum / 12));
+      const radius = getNodeRadius(node);
+      const isHub = node.hubScore > HUB_SCORE_THRESHOLD;
+
+      // Persistent hub glow (subtle aura for high-connectivity nodes)
+      if (isHub && !isSelected && !isHovered) {
+        const grd = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, radius * 2.5);
+        grd.addColorStop(0, colors.dot + "22");
+        grd.addColorStop(1, "transparent");
+        ctx.beginPath();
+        ctx.fillStyle = grd;
+        ctx.arc(node.x, node.y, radius * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // Glow for selected/hovered
       if (isSelected || isHovered) {
@@ -338,7 +366,7 @@ export default function ForceGraph(): React.ReactElement {
       ctx.fill();
 
       // Label (constant screen-size via inverse zoom scaling)
-      if (isHovered || isSelected || radius > 9) {
+      if (isHovered || isSelected || radius > 9 || isHub) {
         const fontSize = 11 / zoom;
         ctx.font = `bold ${fontSize}px monospace`;
         ctx.fillStyle = isHovered || isSelected ? "#e2e8f0" : colors.text + "aa";
@@ -506,7 +534,7 @@ export default function ForceGraph(): React.ReactElement {
         const n = nodes[i];
         const dx = n.x - wx;
         const dy = n.y - wy;
-        const r = Math.max(6, Math.min(14, 5 + n.complexityNum / 12));
+        const r = getNodeRadius(n);
         const hit = r + 6 / zoomRef.current;
         if (dx * dx + dy * dy <= hit * hit) return n;
       }
