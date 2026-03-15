@@ -31,16 +31,16 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="fixed top-0 left-0 right-0 z-50"
       style={{
-        background: "rgba(10,14,39,0.92)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(28,22,18,0.92)",
+        borderBottom: "1px solid rgba(61,48,40,0.5)",
         backdropFilter: "blur(16px)",
       }}
     >
       <div className="container mx-auto flex items-center justify-between h-14 px-4">
         <a href="/" className="flex items-center gap-2 group">
-          <Hexagon className="h-5 w-5 transition-all" style={{ color: "#6366f1" }} />
-          <span className="text-lg font-bold tracking-tight" style={{ color: "#e2e8f0" }}>
-            Code<span style={{ color: "#6366f1" }}>Atlas</span>
+          <Hexagon className="h-5 w-5 transition-all" style={{ color: "#E07B54" }} />
+          <span className="text-lg font-bold tracking-tight" style={{ color: "#F2EDE8" }}>
+            Code<span style={{ color: "#E07B54" }}>Atlas</span>
           </span>
         </a>
 
@@ -67,9 +67,9 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all"
                     style={{
-                      background: "rgba(99,102,241,0.15)",
-                      border: "1px solid rgba(99,102,241,0.25)",
-                      color: "#c7d2fe",
+                      background: "rgba(224,123,84,0.15)",
+                      border: "1px solid rgba(224,123,84,0.25)",
+                      color: "#F2EDE8",
                     }}
                   >
                     <User className="h-4 w-4" />
@@ -86,13 +86,13 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
                         transition={{ duration: 0.15 }}
                         className="absolute right-0 top-full mt-2 w-56 rounded-lg py-1 z-[60]"
                         style={{
-                          background: "rgba(15,19,50,0.95)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                          background: "rgba(37,30,24,0.95)",
+                          border: "1px solid rgba(61,48,40,0.5)",
+                          boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                         }}
                       >
                         <div className="px-4 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                          <p className="text-sm font-medium" style={{ color: "#e2e8f0" }}>{user.name}</p>
+                          <p className="text-sm font-medium" style={{ color: "#F2EDE8" }}>{user.name}</p>
                           <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.4)" }}>{user.email}</p>
                         </div>
                         <button
@@ -120,7 +120,7 @@ export default function NavBar({ showCta = true }: NavBarProps): React.ReactElem
                     <a
                       href="/signup"
                       className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-all"
-                      style={{ background: "rgba(99,102,241,0.8)", boxShadow: "0 0 12px rgba(99,102,241,0.3)" }}
+                      style={{ background: "rgba(224,123,84,0.85)", boxShadow: "0 0 12px rgba(224,123,84,0.3)" }}
                     >
                       Sign Up
                     </a>

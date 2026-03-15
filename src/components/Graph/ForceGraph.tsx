@@ -7,15 +7,15 @@ import type { GraphNode, NodeType } from "@/types";
 // ─── NODE_TYPES (exported for NodeTooltip) ────────────────────
 
 export const NODE_TYPES: Record<string, { color: string; label: string }> = {
-  route:      { color: "#3b82f6", label: "Route" },
-  controller: { color: "#3b82f6", label: "Controller" },
-  entry:      { color: "#3b82f6", label: "Entry" },
-  middleware: { color: "#3b82f6", label: "Middleware" },
-  service:    { color: "#22c55e", label: "Service" },
-  model:      { color: "#22c55e", label: "Model" },
-  util:       { color: "#facc15", label: "Utility" },
-  test:       { color: "#ec4899", label: "Test" },
-  config:     { color: "#f97316", label: "Config" },
+  route:      { color: "#E07B54", label: "Route" },
+  controller: { color: "#E07B54", label: "Controller" },
+  entry:      { color: "#E07B54", label: "Entry" },
+  middleware: { color: "#9C7FCB", label: "Middleware" },
+  service:    { color: "#6BAF7C", label: "Service" },
+  model:      { color: "#6BAF7C", label: "Model" },
+  util:       { color: "#D4A857", label: "Utility" },
+  test:       { color: "#6BAF7C", label: "Test" },
+  config:     { color: "#6B5E56", label: "Config" },
 };
 
 // ─── Category mapping ─────────────────────────────────────────
@@ -52,11 +52,11 @@ const CATEGORY_ANCHORS: Record<CategoryType, { x: number; y: number }> = {
 // ─── Color definitions ────────────────────────────────────────
 
 const NODE_COLORS: Record<CategoryType, { dot: string; bg: string; border: string; text: string }> = {
-  core:          { dot: "#3b82f6", bg: "rgba(59,130,246,0.15)",  border: "rgba(59,130,246,0.5)",  text: "#60a5fa" },
-  services:      { dot: "#22c55e", bg: "rgba(34,197,94,0.15)",   border: "rgba(34,197,94,0.5)",   text: "#4ade80" },
-  utilities:     { dot: "#facc15", bg: "rgba(250,204,21,0.15)",  border: "rgba(250,204,21,0.5)",  text: "#fde047" },
-  qa:            { dot: "#ec4899", bg: "rgba(236,72,153,0.15)",  border: "rgba(236,72,153,0.5)",  text: "#f472b6" },
-  configuration: { dot: "#f97316", bg: "rgba(249,115,22,0.15)",  border: "rgba(249,115,22,0.5)",  text: "#fb923c" },
+  core:          { dot: "#E07B54", bg: "rgba(224,123,84,0.15)",  border: "rgba(224,123,84,0.5)",  text: "#E07B54" },
+  services:      { dot: "#6BAF7C", bg: "rgba(107,175,124,0.15)", border: "rgba(107,175,124,0.5)", text: "#6BAF7C" },
+  utilities:     { dot: "#D4A857", bg: "rgba(212,168,87,0.15)",  border: "rgba(212,168,87,0.5)",  text: "#D4A857" },
+  qa:            { dot: "#9C7FCB", bg: "rgba(156,127,203,0.15)", border: "rgba(156,127,203,0.5)", text: "#9C7FCB" },
+  configuration: { dot: "#6B5E56", bg: "rgba(107,94,86,0.15)",   border: "rgba(107,94,86,0.5)",   text: "#9A8F87" },
 };
 
 const RISK_COLORS: Record<string, string> = {
@@ -273,7 +273,7 @@ export default function ForceGraph(): React.ReactElement {
       const isHighlighted = selectedNode?.id === src.id || selectedNode?.id === tgt.id;
       ctx.beginPath();
       ctx.setLineDash([4 / zoom, 8 / zoom]);
-      ctx.strokeStyle = isHighlighted ? "rgba(56, 189, 248, 0.5)" : "rgba(56, 189, 248, 0.1)";
+      ctx.strokeStyle = isHighlighted ? "rgba(224,123,84,0.5)" : "rgba(61,48,40,0.3)";
       ctx.lineWidth = (isHighlighted ? 1.5 : 0.8) / zoom;
       ctx.moveTo(src.x, src.y);
       ctx.lineTo(tgt.x, tgt.y);
@@ -341,7 +341,7 @@ export default function ForceGraph(): React.ReactElement {
       if (isHovered || isSelected || radius > 9) {
         const fontSize = 11 / zoom;
         ctx.font = `bold ${fontSize}px monospace`;
-        ctx.fillStyle = isHovered || isSelected ? "#e2e8f0" : colors.text + "aa";
+        ctx.fillStyle = isHovered || isSelected ? "#F2EDE8" : colors.text + "aa";
         ctx.textAlign = "center";
         ctx.fillText(node.name.replace(/\.(tsx?|js|py|mjs|ts)$/, ""), node.x, node.y + radius + fontSize + 2);
       }
@@ -672,8 +672,8 @@ export default function ForceGraph(): React.ReactElement {
     <div
       className="relative flex-1 flex flex-col h-full overflow-hidden"
       style={{
-        background: "#0a0e27",
-        backgroundImage: "radial-gradient(circle, rgba(56,189,248,0.04) 1px, transparent 1px)",
+        background: "#1A1411",
+        backgroundImage: "radial-gradient(circle, rgba(61,48,40,0.35) 1px, transparent 1px)",
         backgroundSize: "24px 24px",
       }}
     >
@@ -691,20 +691,20 @@ export default function ForceGraph(): React.ReactElement {
                   filterCategory === type
                     ? colors
                       ? colors.bg
-                      : "rgba(56, 189, 248, 0.15)"
-                    : "rgba(11,17,32,0.7)",
+                      : "rgba(224,123,84,0.15)"
+                    : "rgba(28,22,18,0.7)",
                 borderColor:
                   filterCategory === type
                     ? colors
                       ? colors.border
-                      : "rgba(56, 189, 248, 0.5)"
+                      : "rgba(224,123,84,0.5)"
                     : "rgba(255,255,255,0.08)",
                 color:
                   filterCategory === type
                     ? colors
                       ? colors.text
-                      : "#38bdf8"
-                    : "#64748b",
+                      : "#E07B54"
+                    : "#9A8F87",
               }}
             >
               {label}
@@ -718,7 +718,7 @@ export default function ForceGraph(): React.ReactElement {
         <div
           className="absolute top-4 right-4 z-10 w-64 rounded-xl p-4 text-left space-y-3"
           style={{
-            background: "rgba(11, 17, 32, 0.92)",
+            background: "rgba(28, 22, 18, 0.92)",
             border: `1px solid ${NODE_COLORS[selectedNode.category].border}`,
             backdropFilter: "blur(12px)",
           }}
@@ -735,13 +735,13 @@ export default function ForceGraph(): React.ReactElement {
                 setSelectedNode(null);
                 storeSelectNode(null);
               }}
-              className="text-slate-500 hover:text-white transition-colors"
+              className="text-[#6B5E56] hover:text-white transition-colors"
             >
               ✕
             </button>
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">{selectedNode.description}</p>
-          <div className="flex items-center gap-3 text-[11px] text-slate-500">
+          <p className="text-[11px] text-[#9A8F87] leading-relaxed">{selectedNode.description}</p>
+          <div className="flex items-center gap-3 text-[11px] text-[#6B5E56]">
             <span>{selectedNode.lines} lines</span>
             <span>·</span>
             <span>{selectedNode.imports} deps</span>
@@ -768,14 +768,14 @@ export default function ForceGraph(): React.ReactElement {
         {(["core", "services", "utilities", "qa", "configuration"] as CategoryType[]).map((type) => (
           <div key={type} className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: NODE_COLORS[type].dot }} />
-            <span className="text-[10px] text-slate-500 capitalize">{type}</span>
+            <span className="text-[10px] text-[#9A8F87] capitalize">{type}</span>
           </div>
         ))}
         <div className="mt-1 pt-1.5 space-y-1" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           {(["low", "medium", "high", "critical"] as const).map((risk) => (
             <div key={risk} className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: RISK_COLORS[risk] }} />
-              <span className="text-[9px] text-slate-500 capitalize">{risk} risk</span>
+              <span className="text-[9px] text-[#9A8F87] capitalize">{risk} risk</span>
             </div>
           ))}
         </div>
@@ -786,16 +786,16 @@ export default function ForceGraph(): React.ReactElement {
         <div className="flex gap-1.5">
           <button
             onClick={handleZoomOut}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm border transition-all hover:border-sky-500/50 hover:text-sky-400"
-            style={{ background: "rgba(11,17,32,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#94a3b8", backdropFilter: "blur(8px)" }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm border transition-all hover:border-primary/50 hover:text-primary"
+            style={{ background: "rgba(28,22,18,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#9A8F87", backdropFilter: "blur(8px)" }}
             title="Zoom out"
           >
             −
           </button>
           <button
             onClick={handleZoomIn}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm border transition-all hover:border-sky-500/50 hover:text-sky-400"
-            style={{ background: "rgba(11,17,32,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#94a3b8", backdropFilter: "blur(8px)" }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm border transition-all hover:border-primary/50 hover:text-primary"
+            style={{ background: "rgba(28,22,18,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#9A8F87", backdropFilter: "blur(8px)" }}
             title="Zoom in"
           >
             +
@@ -803,16 +803,16 @@ export default function ForceGraph(): React.ReactElement {
         </div>
         <button
           onClick={fitToScreen}
-          className="px-3 h-8 flex items-center justify-center rounded-lg text-[11px] border transition-all hover:border-sky-500/50 hover:text-sky-400"
-          style={{ background: "rgba(11,17,32,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#94a3b8", backdropFilter: "blur(8px)" }}
+          className="px-3 h-8 flex items-center justify-center rounded-lg text-[11px] border transition-all hover:border-primary/50 hover:text-primary"
+          style={{ background: "rgba(28,22,18,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#9A8F87", backdropFilter: "blur(8px)" }}
           title="Fit all nodes to screen"
         >
           Fit
         </button>
         <button
           onClick={handleUnpinAll}
-          className="px-3 h-8 flex items-center justify-center rounded-lg text-[11px] border transition-all hover:border-sky-500/50 hover:text-sky-400"
-          style={{ background: "rgba(11,17,32,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#94a3b8", backdropFilter: "blur(8px)" }}
+          className="px-3 h-8 flex items-center justify-center rounded-lg text-[11px] border transition-all hover:border-primary/50 hover:text-primary"
+          style={{ background: "rgba(28,22,18,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#9A8F87", backdropFilter: "blur(8px)" }}
           title="Unpin all nodes (double-click individual nodes to unpin)"
         >
           Unpin
@@ -837,14 +837,14 @@ export default function ForceGraph(): React.ReactElement {
           <div
             className="px-2.5 py-1.5 rounded-lg text-xs"
             style={{
-              background: "rgba(11,17,32,0.95)",
+              background: "rgba(28,22,18,0.95)",
               border: `1px solid ${NODE_COLORS[hoveredNode.category].border}`,
             }}
           >
             <span style={{ color: NODE_COLORS[hoveredNode.category].text }} className="font-mono font-bold">
               {hoveredNode.name}
             </span>
-            <span className="text-slate-500 ml-2 text-[10px]">{hoveredNode.lines} lines</span>
+            <span className="text-[#6B5E56] ml-2 text-[10px]">{hoveredNode.lines} lines</span>
           </div>
         </div>
       )}

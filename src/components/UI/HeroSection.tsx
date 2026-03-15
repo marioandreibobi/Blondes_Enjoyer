@@ -128,7 +128,7 @@ export default function HeroSection(): React.ReactElement {
                   onClick={() => setDualMode(!dualMode)}
                   className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-medium transition-all duration-300 border ${
                     dualMode
-                      ? "bg-primary/20 border-primary/50 text-primary shadow-[0_0_12px_rgba(99,102,241,0.3)]"
+                      ? "bg-primary/20 border-primary/50 text-primary shadow-[0_0_12px_rgba(224,123,84,0.3)]"
                       : "bg-glass border-glass text-muted-foreground hover:border-primary/30 hover:text-foreground"
                   }`}
                 >

@@ -42,9 +42,9 @@ const SAMPLE_LINKS = [
 ];
 
 const NODE_COLORS: Record<string, string> = {
-  entry: "#ff6b6b", route: "#ffa94d", controller: "#ffd43b",
-  service: "#69db7c", middleware: "#748ffc", model: "#da77f2",
-  util: "#868e96", config: "#495057", test: "#20c997",
+  entry: "#E07B54", route: "#D4A857", controller: "#D4A857",
+  service: "#6BAF7C", middleware: "#9C7FCB", model: "#C96E45",
+  util: "#6B5E56", config: "#6B5E56", test: "#6BAF7C",
 };
 
 export default function HeroMiniGraph(): React.ReactElement {
@@ -84,11 +84,11 @@ export default function HeroMiniGraph(): React.ReactElement {
         .nodeColor((node) => NODE_COLORS[node.type] ?? "#868e96")
         .nodeCanvasObject((node, ctx) => {
           const label = node.id;
-          ctx.fillStyle = "rgba(226,232,240,0.85)";
+          ctx.fillStyle = "rgba(242,237,232,0.85)";
           ctx.font = "8px monospace";
           ctx.fillText(label, (node.x ?? 0) + 6, (node.y ?? 0) - 6);
         })
-        .linkColor(() => "rgba(56,120,200,0.28)")
+        .linkColor(() => "rgba(61,48,40,0.45)")
         .linkWidth(0.8)
         .enableNodeDrag(false)
         .graphData({
