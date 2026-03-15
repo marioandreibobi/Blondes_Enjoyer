@@ -4,14 +4,14 @@ import React from "react";
 import { motion } from "framer-motion";
 
 const NODES = [
-  { id: "A", cx: 120, cy: 80, r: 8, color: "#ff6b6b", label: "entry" },
-  { id: "B", cx: 220, cy: 50, r: 6, color: "#ffa94d", label: "route" },
-  { id: "C", cx: 300, cy: 120, r: 7, color: "#69db7c", label: "service" },
-  { id: "D", cx: 180, cy: 160, r: 5, color: "#748ffc", label: "middleware" },
-  { id: "E", cx: 80, cy: 180, r: 6, color: "#da77f2", label: "model" },
-  { id: "F", cx: 350, cy: 60, r: 5, color: "#868e96", label: "util" },
-  { id: "G", cx: 260, cy: 200, r: 7, color: "#20c997", label: "test" },
-  { id: "H", cx: 400, cy: 160, r: 5, color: "#ffd43b", label: "controller" },
+  { id: "A", cx: 120, cy: 80, r: 8, color: "#E07B54", label: "entry" },
+  { id: "B", cx: 220, cy: 50, r: 6, color: "#D4A857", label: "route" },
+  { id: "C", cx: 300, cy: 120, r: 7, color: "#6BAF7C", label: "service" },
+  { id: "D", cx: 180, cy: 160, r: 5, color: "#9C7FCB", label: "middleware" },
+  { id: "E", cx: 80, cy: 180, r: 6, color: "#C96E45", label: "model" },
+  { id: "F", cx: 350, cy: 60, r: 5, color: "#6B5E56", label: "util" },
+  { id: "G", cx: 260, cy: 200, r: 7, color: "#6BAF7C", label: "test" },
+  { id: "H", cx: 400, cy: 160, r: 5, color: "#D4A857", label: "controller" },
 ];
 
 const EDGES = [
@@ -45,7 +45,7 @@ export default function CodescapeVisual(): React.ReactElement {
           <motion.line
             key={i}
             x1={from.cx} y1={from.cy} x2={to.cx} y2={to.cy}
-            stroke="rgba(56,120,200,0.2)"
+            stroke="rgba(61,48,40,0.4)"
             strokeWidth={1}
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
@@ -72,7 +72,7 @@ export default function CodescapeVisual(): React.ReactElement {
           key={`risk-${i}`}
           cx={d.cx} cy={d.cy} r={14}
           fill="none"
-          stroke="hsl(10 70% 55%)"
+          stroke="hsl(16 68% 60%)"
           strokeWidth={1.5}
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: [0.5, 1.4, 0.5], opacity: [0, 0.6, 0] }}
@@ -85,7 +85,7 @@ export default function CodescapeVisual(): React.ReactElement {
         <motion.text
           key={`metric-${i}`}
           x={m.x} y={m.y}
-          fill="hsl(225 15% 55%)"
+          fill="hsl(22 8% 55%)"
           fontSize={10}
           fontFamily="JetBrains Mono, monospace"
           initial={{ opacity: 0 }}

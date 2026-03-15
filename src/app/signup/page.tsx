@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -178,9 +178,9 @@ export default function SignupPage(): React.ReactElement {
         >
           {/* Logo */}
           <a href="/" className="flex items-center justify-center gap-2 mb-8 group">
-            <Hexagon className="h-7 w-7" style={{ color: "#6366f1" }} />
-            <span className="text-2xl font-bold tracking-tight" style={{ color: "#e2e8f0" }}>
-              Code<span style={{ color: "#6366f1" }}>Atlas</span>
+            <Hexagon className="h-7 w-7" style={{ color: "#E07B54" }} />
+            <span className="text-2xl font-bold tracking-tight" style={{ color: "#F2EDE8" }}>
+              Code<span style={{ color: "#E07B54" }}>Atlas</span>
             </span>
           </a>
 
@@ -188,9 +188,9 @@ export default function SignupPage(): React.ReactElement {
           <div
             className="rounded-xl p-8"
             style={{
-              background: "rgba(15,19,50,0.85)",
+              background: "rgba(37,30,24,0.85)",
               border: "1px solid rgba(255,255,255,0.08)",
-              boxShadow: "0 0 40px rgba(99,102,241,0.08)",
+              boxShadow: "0 0 40px rgba(224,123,84,0.08)",
             }}
           >
             <AnimatePresence mode="wait">
@@ -203,11 +203,11 @@ export default function SignupPage(): React.ReactElement {
                   transition={{ duration: 0.25 }}
                 >
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded-lg" style={{ background: "rgba(99,102,241,0.15)" }}>
-                      <UserPlus className="h-5 w-5" style={{ color: "#6366f1" }} />
+                    <div className="p-2 rounded-lg" style={{ background: "rgba(224,123,84,0.15)" }}>
+                      <UserPlus className="h-5 w-5" style={{ color: "#E07B54" }} />
                     </div>
                     <div>
-                      <h1 className="text-xl font-bold" style={{ color: "#e2e8f0" }}>
+                      <h1 className="text-xl font-bold" style={{ color: "#F2EDE8" }}>
                         Create Account
                       </h1>
                       <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -243,11 +243,11 @@ export default function SignupPage(): React.ReactElement {
                         minLength={2}
                         maxLength={100}
                         placeholder="John Doe"
-                        className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#E07B54]"
                         style={{
                           background: "rgba(255,255,255,0.05)",
                           border: "1px solid rgba(255,255,255,0.1)",
-                          color: "#e2e8f0",
+                          color: "#F2EDE8",
                         }}
                       />
                     </div>
@@ -263,11 +263,11 @@ export default function SignupPage(): React.ReactElement {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         placeholder="you@example.com"
-                        className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#E07B54]"
                         style={{
                           background: "rgba(255,255,255,0.05)",
                           border: "1px solid rgba(255,255,255,0.1)",
-                          color: "#e2e8f0",
+                          color: "#F2EDE8",
                         }}
                       />
                     </div>
@@ -285,11 +285,11 @@ export default function SignupPage(): React.ReactElement {
                           required
                           minLength={8}
                           placeholder="At least 8 characters"
-                          className="w-full rounded-lg px-4 py-2.5 pr-10 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500"
+                          className="w-full rounded-lg px-4 py-2.5 pr-10 text-sm outline-none transition-all focus:ring-2 focus:ring-[#E07B54]"
                           style={{
                             background: "rgba(255,255,255,0.05)",
                             border: "1px solid rgba(255,255,255,0.1)",
-                            color: "#e2e8f0",
+                            color: "#F2EDE8",
                           }}
                         />
                         <button
@@ -314,11 +314,11 @@ export default function SignupPage(): React.ReactElement {
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                         placeholder="Re-enter your password"
-                        className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#E07B54]"
                         style={{
                           background: "rgba(255,255,255,0.05)",
                           border: "1px solid rgba(255,255,255,0.1)",
-                          color: "#e2e8f0",
+                          color: "#F2EDE8",
                         }}
                       />
                     </div>
@@ -329,8 +329,8 @@ export default function SignupPage(): React.ReactElement {
                       disabled={loading}
                       className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-50"
                       style={{
-                        background: loading ? "rgba(99,102,241,0.5)" : "rgba(99,102,241,0.85)",
-                        boxShadow: "0 0 20px rgba(99,102,241,0.25)",
+                        background: loading ? "rgba(224,123,84,0.5)" : "rgba(224,123,84,0.85)",
+                        boxShadow: "0 0 20px rgba(224,123,84,0.25)",
                       }}
                     >
                       {loading ? "Sending Code..." : "Continue"}
@@ -343,7 +343,7 @@ export default function SignupPage(): React.ReactElement {
                     <a
                       href="/login"
                       className="font-medium hover:underline"
-                      style={{ color: "#6366f1" }}
+                      style={{ color: "#E07B54" }}
                     >
                       Sign in
                     </a>
@@ -367,15 +367,15 @@ export default function SignupPage(): React.ReactElement {
                   </button>
 
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 rounded-lg" style={{ background: "rgba(99,102,241,0.15)" }}>
-                      <Mail className="h-5 w-5" style={{ color: "#6366f1" }} />
+                    <div className="p-2 rounded-lg" style={{ background: "rgba(224,123,84,0.15)" }}>
+                      <Mail className="h-5 w-5" style={{ color: "#E07B54" }} />
                     </div>
                     <div>
-                      <h1 className="text-xl font-bold" style={{ color: "#e2e8f0" }}>
+                      <h1 className="text-xl font-bold" style={{ color: "#F2EDE8" }}>
                         Verify Your Email
                       </h1>
                       <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
-                        Code sent to <span style={{ color: "#818cf8" }}>{email.trim()}</span>
+                        Code sent to <span style={{ color: "#D4A857" }}>{email.trim()}</span>
                       </p>
                     </div>
                   </div>
@@ -411,11 +411,11 @@ export default function SignupPage(): React.ReactElement {
                             onChange={(e) => handleCodeChange(i, e.target.value)}
                             onKeyDown={(e) => handleCodeKeyDown(i, e)}
                             onPaste={i === 0 ? handleCodePaste : undefined}
-                            className="w-12 h-14 text-center text-xl font-bold rounded-lg outline-none transition-all focus:ring-2 focus:ring-indigo-500"
+                            className="w-12 h-14 text-center text-xl font-bold rounded-lg outline-none transition-all focus:ring-2 focus:ring-[#E07B54]"
                             style={{
                               background: "rgba(255,255,255,0.05)",
-                              border: digit ? "1px solid rgba(99,102,241,0.4)" : "1px solid rgba(255,255,255,0.1)",
-                              color: "#e2e8f0",
+                              border: digit ? "1px solid rgba(224,123,84,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                              color: "#F2EDE8",
                             }}
                           />
                         ))}
@@ -428,8 +428,8 @@ export default function SignupPage(): React.ReactElement {
                       disabled={loading || code.join("").length !== 6}
                       className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-50"
                       style={{
-                        background: loading ? "rgba(99,102,241,0.5)" : "rgba(99,102,241,0.85)",
-                        boxShadow: "0 0 20px rgba(99,102,241,0.25)",
+                        background: loading ? "rgba(224,123,84,0.5)" : "rgba(224,123,84,0.85)",
+                        boxShadow: "0 0 20px rgba(224,123,84,0.25)",
                       }}
                     >
                       {loading ? "Verifying..." : "Create Account"}
@@ -448,7 +448,7 @@ export default function SignupPage(): React.ReactElement {
                         onClick={handleResend}
                         disabled={loading}
                         className="font-medium hover:underline disabled:opacity-50"
-                        style={{ color: "#6366f1" }}
+                        style={{ color: "#E07B54" }}
                       >
                         Resend code
                       </button>

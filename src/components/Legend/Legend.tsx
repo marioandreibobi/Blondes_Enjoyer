@@ -3,18 +3,18 @@
 import React from "react";
 
 const CATEGORY_ITEMS = [
-  { color: "#3b82f6", label: "Core" },
-  { color: "#22c55e", label: "Services" },
-  { color: "#facc15", label: "UI" },
-  { color: "#ec4899", label: "QA" },
-  { color: "#f97316", label: "Config" },
+  { color: "#E07B54", label: "Core" },
+  { color: "#6BAF7C", label: "Services" },
+  { color: "#D4A857", label: "UI" },
+  { color: "#9C7FCB", label: "QA" },
+  { color: "#6B5E56", label: "Config" },
 ];
 
 const RISK_ITEMS = [
-  { color: "#22c55e", label: "Low Risk" },
-  { color: "#f59e0b", label: "Medium Risk" },
+  { color: "#6BAF7C", label: "Low Risk" },
+  { color: "#D4A857", label: "Medium Risk" },
   { color: "#ef4444", label: "High Risk" },
-  { color: "#6366f1", label: "Critical Risk" },
+  { color: "#E07B54", label: "Critical Risk" },
 ];
 
 export default function Legend(): React.ReactElement {
@@ -22,8 +22,8 @@ export default function Legend(): React.ReactElement {
     <div
       className="absolute bottom-4 left-4 z-20 flex flex-col gap-3 px-4 py-3 rounded-xl"
       style={{
-        background: "rgba(10,14,39,0.85)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(28,22,18,0.85)",
+        border: "1px solid rgba(61,48,40,0.5)",
         backdropFilter: "blur(12px)",
       }}
     >

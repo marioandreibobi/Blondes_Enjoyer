@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
@@ -7,7 +7,7 @@ import { useGraphStore } from "@/store/graph-store";
 import FileViewer from "@/components/Graph/FileViewer";
 import type { GraphNode, NodeType } from "@/types";
 
-// ─── Category mapping ─────────────────────────────────────────
+// â”€â”€â”€ Category mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type CategoryType = "core" | "middleware" | "services" | "utilities" | "qa" | "configuration";
 
@@ -40,7 +40,7 @@ function getCategory(type: NodeType): CategoryType {
   return "core";
 }
 
-// ─── Color definitions ────────────────────────────────────────
+// â”€â”€â”€ Color definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const NODE_COLORS: Record<CategoryType, { dot: string; bg: string; border: string; text: string }> = {
   core:          { dot: "#3b82f6", bg: "rgba(59,130,246,0.15)",  border: "rgba(59,130,246,0.5)",  text: "#60a5fa" },
@@ -86,7 +86,7 @@ function complexityToNumber(c: string): number {
   return 25;
 }
 
-// ─── Derived node with display fields ─────────────────────────
+// â”€â”€â”€ Derived node with display fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface DisplayNode {
   id: string;
@@ -122,7 +122,7 @@ function toDisplayNode(node: GraphNode, depNames: string[]): DisplayNode {
   };
 }
 
-// ─── NodeCard ─────────────────────────────────────────────────
+// â”€â”€â”€ NodeCard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface NodeCardProps {
   node: DisplayNode;
@@ -140,8 +140,8 @@ function NodeCard({ node, onClick, onDoubleClick, isSelected }: NodeCardProps): 
       onClick={() => onClick(node)}
       onDoubleClick={() => onDoubleClick(node)}
       style={{
-        background: isSelected ? colors.bg : "rgba(15, 23, 42, 0.6)",
-        border: `1px solid ${isSelected ? colors.border : "rgba(56, 189, 248, 0.08)"}`,
+        background: isSelected ? colors.bg : "rgba(28, 22, 18, 0.6)",
+        border: `1px solid ${isSelected ? colors.border : "rgba(61,48,40,0.4)"}`,
         boxShadow: isSelected ? `0 0 12px ${colors.dot}33` : "none",
       }}
       className="group relative w-full text-left rounded-lg p-3 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
@@ -160,11 +160,11 @@ function NodeCard({ node, onClick, onDoubleClick, isSelected }: NodeCardProps): 
           />
         </div>
       </div>
-      <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-slate-500">
+      <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[#6B5E56]">
         <span>{node.lines}L</span>
         {node.dependencies.length > 0 && (
           <>
-            <span className="opacity-40">·</span>
+            <span className="opacity-40">Â·</span>
             <span>{node.dependencies.length}d</span>
           </>
         )}
@@ -184,7 +184,7 @@ function NodeCard({ node, onClick, onDoubleClick, isSelected }: NodeCardProps): 
   );
 }
 
-// ─── InspectorPanel ───────────────────────────────────────────
+// â”€â”€â”€ InspectorPanel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface InspectorPanelProps {
   node: DisplayNode;
@@ -201,14 +201,14 @@ function InspectorPanel({ node, onClose, onViewSource }: InspectorPanelProps): R
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-0.5">Inspector</p>
+          <p className="text-[10px] uppercase tracking-widest text-[#6B5E56] mb-0.5">Inspector</p>
           <h3 className="font-mono text-sm font-bold" style={{ color: colors.text }}>
             {node.name}
           </h3>
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded hover:bg-white/10 text-slate-500 hover:text-white transition-colors"
+          className="p-1.5 rounded hover:bg-white/10 text-[#6B5E56] hover:text-white transition-colors"
         >
           <X size={14} />
         </button>
@@ -216,32 +216,32 @@ function InspectorPanel({ node, onClose, onViewSource }: InspectorPanelProps): R
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Path</p>
-          <p className="font-mono text-xs text-slate-300 break-all leading-relaxed">{node.path}</p>
+          <p className="text-[10px] uppercase tracking-widest text-[#6B5E56] mb-1">Path</p>
+          <p className="font-mono text-xs text-[#C4BAB2] break-all leading-relaxed">{node.path}</p>
         </div>
 
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Description</p>
-          <p className="text-xs text-slate-300 leading-relaxed">{node.description}</p>
+          <p className="text-[10px] uppercase tracking-widest text-[#6B5E56] mb-1">Description</p>
+          <p className="text-xs text-[#C4BAB2] leading-relaxed">{node.description}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-lg p-2.5" style={{ background: "rgba(56, 189, 248, 0.06)", border: "1px solid rgba(56, 189, 248, 0.12)" }}>
-            <p className="text-[9px] uppercase tracking-widest text-slate-500">Lines</p>
-            <p className="text-lg font-bold mt-0.5" style={{ color: "#38bdf8" }}>{node.lines}</p>
+          <div className="rounded-lg p-2.5" style={{ background: "rgba(224,123,84,0.06)", border: "1px solid rgba(224,123,84,0.12)" }}>
+            <p className="text-[9px] uppercase tracking-widest text-[#6B5E56]">Lines</p>
+            <p className="text-lg font-bold mt-0.5" style={{ color: "#E07B54" }}>{node.lines}</p>
           </div>
-          <div className="rounded-lg p-2.5" style={{ background: "rgba(56, 189, 248, 0.06)", border: "1px solid rgba(56, 189, 248, 0.12)" }}>
-            <p className="text-[9px] uppercase tracking-widest text-slate-500">Deps</p>
-            <p className="text-lg font-bold mt-0.5" style={{ color: "#38bdf8" }}>{node.dependencies.length}</p>
+          <div className="rounded-lg p-2.5" style={{ background: "rgba(224,123,84,0.06)", border: "1px solid rgba(224,123,84,0.12)" }}>
+            <p className="text-[9px] uppercase tracking-widest text-[#6B5E56]">Deps</p>
+            <p className="text-lg font-bold mt-0.5" style={{ color: "#E07B54" }}>{node.dependencies.length}</p>
           </div>
           <div className="rounded-lg p-2.5" style={{ background: `${riskColor}10`, border: `1px solid ${riskColor}22` }}>
-            <p className="text-[9px] uppercase tracking-widest text-slate-500">Risk</p>
+            <p className="text-[9px] uppercase tracking-widest text-[#6B5E56]">Risk</p>
             <p className="text-lg font-bold mt-0.5 capitalize" style={{ color: riskColor }}>{riskLevel}</p>
           </div>
         </div>
 
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Complexity</p>
+          <p className="text-[10px] uppercase tracking-widest text-[#6B5E56] mb-1.5">Complexity</p>
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
             <div
               className="h-full rounded-full transition-all"
@@ -256,26 +256,26 @@ function InspectorPanel({ node, onClose, onViewSource }: InspectorPanelProps): R
               }}
             />
           </div>
-          <p className="text-right text-[10px] text-slate-500 mt-1">{node.complexity}/100</p>
+          <p className="text-right text-[10px] text-[#6B5E56] mt-1">{node.complexity}/100</p>
         </div>
 
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-1.5">
+          <p className="text-[10px] uppercase tracking-widest text-[#6B5E56] mb-2 flex items-center gap-1.5">
             <GitBranch size={10} />
             Dependencies
           </p>
           {node.dependencies.length === 0 ? (
-            <p className="text-xs text-slate-500 italic">No dependencies</p>
+            <p className="text-xs text-[#6B5E56] italic">No dependencies</p>
           ) : (
             <div className="space-y-1">
               {node.dependencies.map((dep) => (
                 <div
                   key={dep}
                   className="flex items-center gap-1.5 py-1 px-2 rounded text-xs font-mono"
-                  style={{ background: "rgba(56, 189, 248, 0.05)", border: "1px solid rgba(56, 189, 248, 0.1)" }}
+                  style={{ background: "rgba(224,123,84,0.05)", border: "1px solid rgba(224,123,84,0.1)" }}
                 >
-                  <ChevronRight size={8} className="opacity-60" style={{ color: "#38bdf8" }} />
-                  <span className="text-slate-400">{dep}</span>
+                  <ChevronRight size={8} className="opacity-60" style={{ color: "#E07B54" }} />
+                  <span className="text-[#9A8F87]">{dep}</span>
                 </div>
               ))}
             </div>
@@ -283,7 +283,7 @@ function InspectorPanel({ node, onClose, onViewSource }: InspectorPanelProps): R
         </div>
 
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Category</p>
+          <p className="text-[10px] uppercase tracking-widest text-[#6B5E56] mb-1">Category</p>
           <span
             className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full border font-medium"
             style={{ background: colors.bg, borderColor: colors.border, color: colors.text }}
@@ -298,9 +298,9 @@ function InspectorPanel({ node, onClose, onViewSource }: InspectorPanelProps): R
           onClick={() => onViewSource(node.path)}
           className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-medium transition-all hover:scale-[1.02]"
           style={{
-            background: "rgba(56, 189, 248, 0.1)",
-            border: "1px solid rgba(56, 189, 248, 0.2)",
-            color: "#38bdf8",
+            background: "rgba(224,123,84,0.1)",
+            border: "1px solid rgba(224,123,84,0.2)",
+            color: "#E07B54",
           }}
         >
           <FileCode size={13} />
@@ -311,7 +311,7 @@ function InspectorPanel({ node, onClose, onViewSource }: InspectorPanelProps): R
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function DiagramView(): React.ReactElement {
   const analysisResult = useGraphStore((s) => s.analysisResult);
@@ -375,8 +375,8 @@ export default function DiagramView(): React.ReactElement {
       <div
         className="flex-1 overflow-y-auto"
         style={{
-          background: "#0a0e27",
-          backgroundImage: "radial-gradient(circle, rgba(56,189,248,0.04) 1px, transparent 1px)",
+          background: "#1A1411",
+          backgroundImage: "radial-gradient(circle, rgba(61,48,40,0.35) 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       >
@@ -386,8 +386,8 @@ export default function DiagramView(): React.ReactElement {
               <h2 className="text-sm font-bold tracking-wider uppercase" style={{ color: "rgba(255,255,255,0.7)" }}>
                 City Map View
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {totalFiles} files · {totalLines.toLocaleString()} lines
+              <p className="text-xs text-[#6B5E56] mt-0.5">
+                {totalFiles} files Â· {totalLines.toLocaleString()} lines
               </p>
             </div>
 
@@ -396,9 +396,9 @@ export default function DiagramView(): React.ReactElement {
                 onClick={() => setFilter("all")}
                 className="px-3 py-1 text-xs rounded-full border transition-all"
                 style={{
-                  background: filter === "all" ? "rgba(56, 189, 248, 0.15)" : "transparent",
-                  borderColor: filter === "all" ? "rgba(56, 189, 248, 0.5)" : "rgba(255,255,255,0.08)",
-                  color: filter === "all" ? "#38bdf8" : "#64748b",
+                  background: filter === "all" ? "rgba(224,123,84,0.15)" : "transparent",
+                  borderColor: filter === "all" ? "rgba(224,123,84,0.5)" : "rgba(255,255,255,0.08)",
+                  color: filter === "all" ? "#E07B54" : "#6B5E56",
                 }}
               >
                 All
@@ -413,7 +413,7 @@ export default function DiagramView(): React.ReactElement {
                     style={{
                       background: filter === type ? colors.bg : "transparent",
                       borderColor: filter === type ? colors.border : "rgba(255,255,255,0.08)",
-                      color: filter === type ? colors.text : "#64748b",
+                      color: filter === type ? colors.text : "#6B5E56",
                     }}
                   >
                     {SECTION_LABELS[type]}
@@ -437,10 +437,10 @@ export default function DiagramView(): React.ReactElement {
                       <span className="text-xs font-bold tracking-widest uppercase" style={{ color: colors.text }}>
                         {SECTION_LABELS[type]}
                       </span>
-                      <span className="ml-2 text-[10px] text-slate-500">{SECTION_SUBTITLES[type]}</span>
+                      <span className="ml-2 text-[10px] text-[#6B5E56]">{SECTION_SUBTITLES[type]}</span>
                     </div>
                     <div className="flex-1 h-px" style={{ background: colors.border + "30" }} />
-                    <span className="text-[10px] text-slate-500">{nodes.length} files</span>
+                    <span className="text-[10px] text-[#6B5E56]">{nodes.length} files</span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
@@ -465,8 +465,8 @@ export default function DiagramView(): React.ReactElement {
       <div
         className="w-72 flex-shrink-0 transition-all duration-300"
         style={{
-          background: "rgba(11, 17, 32, 0.92)",
-          borderLeft: "1px solid rgba(56, 189, 248, 0.12)",
+          background: "rgba(28,22,18,0.92)",
+          borderLeft: "1px solid rgba(224,123,84,0.12)",
         }}
       >
         {selectedNode ? (
@@ -475,17 +475,17 @@ export default function DiagramView(): React.ReactElement {
           <div className="flex flex-col items-center justify-center h-full text-center p-6">
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
-              style={{ background: "rgba(56, 189, 248, 0.06)", border: "1px solid rgba(56, 189, 248, 0.12)" }}
+              style={{ background: "rgba(224,123,84,0.06)", border: "1px solid rgba(224,123,84,0.12)" }}
             >
-              <FileCode size={20} style={{ color: "rgba(56,189,248,0.5)" }} />
+              <FileCode size={20} style={{ color: "rgba(224,123,84,0.5)" }} />
             </div>
-            <p className="text-xs font-medium text-slate-500">Click a file to inspect</p>
-            <p className="text-[10px] text-slate-600 mt-1">
+            <p className="text-xs font-medium text-[#6B5E56]">Click a file to inspect</p>
+            <p className="text-[10px] text-[#5A4F47] mt-1">
               View details, dependencies,
               <br />
               and risk analysis
             </p>
-            <p className="text-[10px] text-slate-600 mt-2">
+            <p className="text-[10px] text-[#5A4F47] mt-2">
               Double-click to view source code
             </p>
           </div>
