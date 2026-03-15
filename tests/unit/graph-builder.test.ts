@@ -20,6 +20,7 @@ describe("buildGraph", () => {
     expect(links[0]).toEqual({
       source: "src/app/api/route.ts",
       target: "src/lib/utils.ts",
+      strength: 2,
     });
   });
 

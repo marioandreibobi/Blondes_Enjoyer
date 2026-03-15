@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Hexagon, Send, ArrowLeft, CheckCircle } from "lucide-react";
@@ -9,24 +9,61 @@ import Footer from "@/components/UI/Footer";
 export default function FeedbackPage(): React.ReactElement {
   const [submitted, setSubmitted] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
+    e.preventDefault();
+
     const form = e.currentTarget;
     if (!form.checkValidity()) return;
 
-    e.preventDefault();
+    setError(null);
 
     const formData = new FormData(form);
 
-    fetch("https://formsubmit.co/ajax/filipcostache8@gmail.com", {
+    const ratingMap: Record<string, number> = {
+      Excellent: 5,
+      Good: 4,
+      Average: 3,
+      "Needs Improvement": 2,
+      Poor: 1,
+    };
+
+    const impression = formData.get("Overall Impression") as string;
+    const upsides = formData.get("Upsides") as string;
+    const downsides = formData.get("Downsides") as string;
+    const improvements = formData.get("Improvements") as string;
+    const email = formData.get("Email") as string;
+
+    const message = [
+      `Upsides: ${upsides}`,
+      `Downsides: ${downsides}`,
+      improvements ? `Improvements: ${improvements}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    fetch("/api/feedback", {
       method: "POST",
-      headers: { Accept: "application/json" },
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "general",
+        rating: ratingMap[impression] ?? 3,
+        message,
+        email: email || undefined,
+      }),
     })
       .then((res) => {
-        if (res.ok) setSubmitted(true);
+        if (res.ok) {
+          setSubmitted(true);
+        } else {
+          return res.json().then((data) => {
+            setError(data.error || "Failed to send feedback. Please try again.");
+          });
+        }
       })
       .catch(() => {
-        // silently fail — user can retry
+        setError("Network error. Please try again.");
       });
   }
 
@@ -39,15 +76,15 @@ export default function FeedbackPage(): React.ReactElement {
         <div
           className="w-full max-w-2xl rounded-2xl border p-8 md:p-10"
           style={{
-            background: "rgba(10,14,39,0.85)",
+            background: "rgba(28,22,18,0.85)",
             borderColor: "rgba(255,255,255,0.08)",
-            boxShadow: "0 0 40px rgba(99,102,241,0.08)",
+            boxShadow: "0 0 40px rgba(224,123,84,0.08)",
           }}
         >
           {submitted ? (
             <div className="flex flex-col items-center gap-4 py-12 text-center">
               <CheckCircle className="h-14 w-14" style={{ color: "#22c55e" }} />
-              <h2 className="text-2xl font-bold" style={{ color: "#e2e8f0" }}>
+              <h2 className="text-2xl font-bold" style={{ color: "#F2EDE8" }}>
                 Thank you for your feedback!
               </h2>
               <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
@@ -57,7 +94,7 @@ export default function FeedbackPage(): React.ReactElement {
                 href="/"
                 className="mt-4 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all"
                 style={{
-                  background: "#6366f1",
+                  background: "#E07B54",
                   color: "#fff",
                 }}
               >
@@ -68,28 +105,36 @@ export default function FeedbackPage(): React.ReactElement {
           ) : (
             <>
               <div className="flex items-center gap-3 mb-2">
-                <Hexagon className="h-6 w-6" style={{ color: "#6366f1" }} />
-                <h1 className="text-2xl font-bold tracking-tight" style={{ color: "#e2e8f0" }}>
+                <Hexagon className="h-6 w-6" style={{ color: "#E07B54" }} />
+                <h1 className="text-2xl font-bold tracking-tight" style={{ color: "#F2EDE8" }}>
                   We&apos;d love your feedback
                 </h1>
               </div>
               <p className="text-sm mb-8" style={{ color: "rgba(255,255,255,0.45)" }}>
-                You&apos;ve just explored CodeAtlas — please share your honest thoughts so we can
+                You&apos;ve just explored CodeAtlas &mdash; please share your honest thoughts so we can
                 make it better. All responses are sent directly to our team.
               </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                {/* Hidden FormSubmit config */}
-                <input type="hidden" name="_subject" value="CodeAtlas Feedback" />
-                <input type="hidden" name="_template" value="table" />
-                <input type="hidden" name="_captcha" value="false" />
+                {error && (
+                  <div
+                    className="rounded-lg border px-4 py-3 text-sm"
+                    style={{
+                      background: "rgba(239,68,68,0.1)",
+                      borderColor: "rgba(239,68,68,0.3)",
+                      color: "#fca5a5",
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
 
                 {/* Overall impression */}
                 <div className="flex flex-col gap-2">
                   <label
                     htmlFor="overall"
                     className="text-sm font-medium"
-                    style={{ color: "#c7d2fe" }}
+                    style={{ color: "#C4BAB2" }}
                   >
                     Overall impression *
                   </label>
@@ -102,17 +147,17 @@ export default function FeedbackPage(): React.ReactElement {
                     style={{
                       background: "rgba(255,255,255,0.04)",
                       borderColor: "rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
+                      color: "#F2EDE8",
                     }}
                   >
                     <option value="" disabled>
                       Select a rating...
                     </option>
-                    <option value="Excellent">⭐ Excellent</option>
-                    <option value="Good">👍 Good</option>
-                    <option value="Average">😐 Average</option>
-                    <option value="Needs Improvement">👎 Needs Improvement</option>
-                    <option value="Poor">❌ Poor</option>
+                    <option value="Excellent">â­ Excellent</option>
+                    <option value="Good">ðŸ‘ Good</option>
+                    <option value="Average">ðŸ˜ Average</option>
+                    <option value="Needs Improvement">ðŸ‘Ž Needs Improvement</option>
+                    <option value="Poor">âŒ Poor</option>
                   </select>
                 </div>
 
@@ -121,7 +166,7 @@ export default function FeedbackPage(): React.ReactElement {
                   <label
                     htmlFor="upsides"
                     className="text-sm font-medium"
-                    style={{ color: "#c7d2fe" }}
+                    style={{ color: "#C4BAB2" }}
                   >
                     What did you like? (Upsides) *
                   </label>
@@ -135,7 +180,7 @@ export default function FeedbackPage(): React.ReactElement {
                     style={{
                       background: "rgba(255,255,255,0.04)",
                       borderColor: "rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
+                      color: "#F2EDE8",
                     }}
                   />
                 </div>
@@ -145,7 +190,7 @@ export default function FeedbackPage(): React.ReactElement {
                   <label
                     htmlFor="downsides"
                     className="text-sm font-medium"
-                    style={{ color: "#c7d2fe" }}
+                    style={{ color: "#C4BAB2" }}
                   >
                     What didn&apos;t you like? (Downsides) *
                   </label>
@@ -159,7 +204,7 @@ export default function FeedbackPage(): React.ReactElement {
                     style={{
                       background: "rgba(255,255,255,0.04)",
                       borderColor: "rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
+                      color: "#F2EDE8",
                     }}
                   />
                 </div>
@@ -169,7 +214,7 @@ export default function FeedbackPage(): React.ReactElement {
                   <label
                     htmlFor="improvements"
                     className="text-sm font-medium"
-                    style={{ color: "#c7d2fe" }}
+                    style={{ color: "#C4BAB2" }}
                   >
                     What would you improve?
                   </label>
@@ -182,7 +227,7 @@ export default function FeedbackPage(): React.ReactElement {
                     style={{
                       background: "rgba(255,255,255,0.04)",
                       borderColor: "rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
+                      color: "#F2EDE8",
                     }}
                   />
                 </div>
@@ -192,9 +237,9 @@ export default function FeedbackPage(): React.ReactElement {
                   <label
                     htmlFor="email"
                     className="text-sm font-medium"
-                    style={{ color: "#c7d2fe" }}
+                    style={{ color: "#C4BAB2" }}
                   >
-                    Your email (optional — if you&apos;d like us to follow up)
+                    Your email (optional &mdash; if you&apos;d like us to follow up)
                   </label>
                   <input
                     id="email"
@@ -205,7 +250,7 @@ export default function FeedbackPage(): React.ReactElement {
                     style={{
                       background: "rgba(255,255,255,0.04)",
                       borderColor: "rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
+                      color: "#F2EDE8",
                     }}
                   />
                 </div>
@@ -214,9 +259,9 @@ export default function FeedbackPage(): React.ReactElement {
                   type="submit"
                   className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-all hover:opacity-90"
                   style={{
-                    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                    background: "linear-gradient(135deg, #E07B54, #D4A857)",
                     color: "#fff",
-                    boxShadow: "0 0 20px rgba(99,102,241,0.3)",
+                    boxShadow: "0 0 20px rgba(224,123,84,0.3)",
                   }}
                 >
                   <Send className="h-4 w-4" />

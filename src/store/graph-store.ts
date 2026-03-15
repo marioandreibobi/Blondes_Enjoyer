@@ -4,6 +4,11 @@ import type { GraphNode, AnalysisResult, NodeType } from "@/types";
 interface GraphState {
   // Data
   analysisResult: AnalysisResult | null;
+  analysisResultB: AnalysisResult | null;
+
+  // Dual mode
+  dualMode: boolean;
+  chosenApproach: "A" | "B" | null;
 
   // Selection
   selectedNode: GraphNode | null;
@@ -15,13 +20,18 @@ interface GraphState {
 
   // UI
   activeView: "3d" | "diagram";
+  activeCategory: string | null;
   sidebarOpen: boolean;
   loading: boolean;
   error: string | null;
 
   // Actions
   setAnalysisResult: (result: AnalysisResult) => void;
+  setAnalysisResultB: (result: AnalysisResult | null) => void;
+  setDualMode: (enabled: boolean) => void;
+  setChosenApproach: (approach: "A" | "B") => void;
   setActiveView: (view: "3d" | "diagram") => void;
+  setActiveCategory: (category: string | null) => void;
   selectNode: (node: GraphNode | null) => void;
   hoverNode: (node: GraphNode | null) => void;
   toggleTypeFilter: (type: NodeType) => void;
@@ -35,11 +45,15 @@ interface GraphState {
 
 const initialState = {
   analysisResult: null,
+  analysisResultB: null,
+  dualMode: false,
+  chosenApproach: null as "A" | "B" | null,
   selectedNode: null,
   hoveredNode: null,
   typeFilters: new Set<NodeType>(),
   complexityFilter: "all" as const,
   activeView: "3d" as const,
+  activeCategory: null as string | null,
   sidebarOpen: true,
   loading: false,
   error: null,
@@ -51,7 +65,23 @@ export const useGraphStore = create<GraphState>((set) => ({
   setAnalysisResult: (result) =>
     set({ analysisResult: result, loading: false, error: null }),
 
+  setAnalysisResultB: (result) => set({ analysisResultB: result }),
+
+  setDualMode: (enabled) => set({ dualMode: enabled, chosenApproach: null }),
+
+  setChosenApproach: (approach) =>
+    set((state) => {
+      const chosen = approach === "A" ? state.analysisResult : state.analysisResultB;
+      return {
+        chosenApproach: approach,
+        analysisResult: chosen ?? state.analysisResult,
+        analysisResultB: null,
+      };
+    }),
+
   setActiveView: (view) => set({ activeView: view }),
+
+  setActiveCategory: (category) => set({ activeCategory: category }),
 
   selectNode: (node) => set({ selectedNode: node, sidebarOpen: node !== null }),
 

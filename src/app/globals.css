@@ -2,58 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 230 55% 7%;
-    --foreground: 220 20% 92%;
-    --card: 230 50% 8%;
-    --card-foreground: 220 20% 92%;
-    --popover: 230 50% 8%;
-    --popover-foreground: 220 20% 92%;
-    --primary: 239 84% 67%;
-    --primary-foreground: 220 20% 98%;
-    --secondary: 230 40% 12%;
-    --secondary-foreground: 220 20% 92%;
-    --muted: 230 40% 12%;
-    --muted-foreground: 225 15% 55%;
-    --accent: 10 70% 55%;
-    --accent-foreground: 220 20% 98%;
+    --background: 20 18% 9%;
+    --foreground: 25 20% 93%;
+    --card: 20 20% 11%;
+    --card-foreground: 25 20% 93%;
+    --popover: 20 20% 11%;
+    --popover-foreground: 25 20% 93%;
+    --primary: 16 68% 60%;
+    --primary-foreground: 25 20% 98%;
+    --secondary: 20 16% 15%;
+    --secondary-foreground: 25 20% 93%;
+    --muted: 20 16% 15%;
+    --muted-foreground: 22 8% 55%;
+    --accent: 40 55% 58%;
+    --accent-foreground: 25 20% 98%;
     --destructive: 0 72% 51%;
-    --destructive-foreground: 220 20% 98%;
-    --border: 230 30% 14%;
-    --input: 230 30% 14%;
-    --ring: 239 84% 67%;
+    --destructive-foreground: 25 20% 98%;
+    --border: 20 16% 19%;
+    --input: 20 16% 19%;
+    --ring: 16 68% 60%;
     --radius: 0.625rem;
-    --sidebar-background: 230 55% 6%;
-    --sidebar-foreground: 220 20% 92%;
-    --sidebar-border: 230 30% 14%;
+    --sidebar-background: 20 18% 8%;
+    --sidebar-foreground: 25 20% 93%;
+    --sidebar-border: 20 16% 19%;
   }
 
   .dark {
-    --background: 230 55% 7%;
-    --foreground: 220 20% 92%;
-    --card: 230 50% 8%;
-    --card-foreground: 220 20% 92%;
-    --popover: 230 50% 8%;
-    --popover-foreground: 220 20% 92%;
-    --primary: 239 84% 67%;
-    --primary-foreground: 220 20% 98%;
-    --secondary: 230 40% 12%;
-    --secondary-foreground: 220 20% 92%;
-    --muted: 230 40% 12%;
-    --muted-foreground: 225 15% 55%;
-    --accent: 10 70% 55%;
-    --accent-foreground: 220 20% 98%;
+    --background: 20 18% 9%;
+    --foreground: 25 20% 93%;
+    --card: 20 20% 11%;
+    --card-foreground: 25 20% 93%;
+    --popover: 20 20% 11%;
+    --popover-foreground: 25 20% 93%;
+    --primary: 16 68% 60%;
+    --primary-foreground: 25 20% 98%;
+    --secondary: 20 16% 15%;
+    --secondary-foreground: 25 20% 93%;
+    --muted: 20 16% 15%;
+    --muted-foreground: 22 8% 55%;
+    --accent: 40 55% 58%;
+    --accent-foreground: 25 20% 98%;
     --destructive: 0 72% 51%;
-    --destructive-foreground: 220 20% 98%;
-    --border: 230 30% 14%;
-    --input: 230 30% 14%;
-    --ring: 239 84% 67%;
-    --sidebar-background: 230 55% 6%;
-    --sidebar-foreground: 220 20% 92%;
-    --sidebar-border: 230 30% 14%;
+    --destructive-foreground: 25 20% 98%;
+    --border: 20 16% 19%;
+    --input: 20 16% 19%;
+    --ring: 16 68% 60%;
+    --sidebar-background: 20 18% 8%;
+    --sidebar-foreground: 25 20% 93%;
+    --sidebar-border: 20 16% 19%;
   }
 }
 
@@ -63,42 +63,41 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', 'JetBrains Mono', sans-serif;
   }
 }
 
 @layer utilities {
   .border-glass {
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .bg-glass {
-    background: rgba(15, 15, 35, 0.75);
+    background: rgba(37, 30, 24, 0.80);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
 
   .shadow-blueprint {
     box-shadow:
-      0 0 0 1px rgba(56, 120, 200, 0.08),
-      0 4px 24px rgba(0, 0, 0, 0.4);
+      0 0 0 1px rgba(61, 48, 40, 0.25),
+      0 4px 24px rgba(0, 0, 0, 0.5);
   }
 
   .bg-grid-blueprint {
     background-image:
-      linear-gradient(rgba(56, 120, 200, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(56, 120, 200, 0.06) 1px, transparent 1px);
+      radial-gradient(rgba(61, 48, 40, 0.35) 1px, transparent 1px);
     background-size: 40px 40px;
   }
 
   .glow-primary {
     box-shadow:
-      0 0 12px hsl(225 80% 60% / 0.3),
-      0 0 4px hsl(225 80% 60% / 0.15);
+      0 0 12px rgba(224, 123, 84, 0.3),
+      0 0 4px rgba(224, 123, 84, 0.15);
   }
 
   .text-gradient-primary {
-    background: linear-gradient(135deg, hsl(225, 80%, 65%), hsl(265, 80%, 70%));
+    background: linear-gradient(135deg, #E07B54, #D4A857);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log(
-          `Checkout completed: plan=${session.metadata?.plan}, billing=${session.metadata?.billing}, customer=${session.customer}, subscription=${session.subscription}`
+          `Checkout completed: plan=${session.metadata?.plan}, billing=${session.metadata?.billing}`
         );
         // TODO: Provision access — save subscription to database
         // e.g. await prisma.subscription.create({ data: { ... } })
@@ -51,26 +51,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
         console.log(
-          `Subscription updated: id=${subscription.id}, status=${subscription.status}`
+          `Subscription updated: status=${subscription.status}`
         );
         // TODO: Update subscription status in database
         break;
       }
 
       case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log(
-          `Subscription cancelled: id=${subscription.id}`
-        );
+        console.log("Subscription cancelled");
         // TODO: Revoke access — mark subscription as cancelled in database
         break;
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        console.log(
-          `Payment failed: invoice=${invoice.id}, customer=${invoice.customer}`
-        );
+        console.log("Payment failed for invoice");
         // TODO: Notify user about payment failure
         break;
       }

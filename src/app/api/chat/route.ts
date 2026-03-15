@@ -7,12 +7,38 @@ const MAX_NODES_IN_CONTEXT = 100;
 const MAX_RETRIES = 4;
 const RETRY_BASE_DELAY = 3000;
 
-function buildChatSystemPrompt(context: ChatRequest["context"]): string {
+// In-memory rate limiter for chat requests
+const chatRateLimit = new Map<string, { count: number; firstRequest: number }>();
+const CHAT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_CHAT_PER_WINDOW = 20;
+
+function checkChatRateLimit(ip: string): boolean {
+  const now = Date.now();
+  // Periodic cleanup to prevent memory leak
+  if (chatRateLimit.size > 10000) {
+    for (const [key, val] of chatRateLimit.entries()) {
+      if (now - val.firstRequest > CHAT_WINDOW_MS * 2) chatRateLimit.delete(key);
+    }
+  }
+  const entry = chatRateLimit.get(ip);
+  if (!entry || now - entry.firstRequest > CHAT_WINDOW_MS) {
+    chatRateLimit.set(ip, { count: 1, firstRequest: now });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= MAX_CHAT_PER_WINDOW;
+}
+
+function sanitizeForPrompt(str: string): string {
+  return str.replace(/[\x00-\x1f]/g, "").slice(0, 300);
+}
+
+function buildChatSystemPrompt(context: ChatRequest["context"], mood?: string): string {
   const nodesSummary = context.nodes
     .slice(0, MAX_NODES_IN_CONTEXT)
     .map(
       (n) =>
-        `- ${n.id} (${n.type}, ${n.lines} lines, complexity: ${n.complexity})${n.description ? `: ${n.description}` : ""}${n.risk ? ` [RISK: ${n.risk}]` : ""}`
+        `- ${sanitizeForPrompt(n.id)} (${sanitizeForPrompt(n.type)}, ${n.lines} lines, complexity: ${sanitizeForPrompt(n.complexity)})${n.description ? `: ${sanitizeForPrompt(n.description)}` : ""}${n.risk ? ` [RISK: ${sanitizeForPrompt(n.risk)}]` : ""}`
     )
     .join("\n");
 
@@ -41,13 +67,29 @@ ${risksSummary || "None identified."}
 - If asked about a file not in the graph, say so honestly.
 - Keep answers concise but informative. Use bullet points for lists.
 - If the user asks about code patterns, architecture decisions, or potential issues, use the graph structure and risk data to inform your answer.
-- Do not make up information that isn't supported by the data above.`;
+- Do not make up information that isn't supported by the data above.
+${mood && mood !== "neutral" ? `
+## User Mood (detected from voice tone)
+The user's current mood appears to be: **${mood}**.
+Adapt your tone accordingly:
+- If "excited" or "happy": match their energy, be enthusiastic and encouraging.
+- If "frustrated": be extra patient, empathetic, and clear. Acknowledge difficulty.
+- If "calm": be measured and thorough in your explanations.
+` : ""}`;
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!checkChatRateLimit(clientIp)) {
+      return Response.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429 }
+      );
+    }
+
     const body: ChatRequest = await request.json();
-    const { message, context, history } = body;
+    const { message, mood, context, history } = body;
 
     if (!message || typeof message !== "string" || message.trim().length === 0) {
       return Response.json({ error: "Message is required" }, { status: 400 });
@@ -68,7 +110,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const client = getAIClient();
-    const systemPrompt = buildChatSystemPrompt(context);
+    const systemPrompt = buildChatSystemPrompt(context, mood);
 
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
       { role: "system", content: systemPrompt },
@@ -86,7 +128,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
         stream = await client.chat.completions.create({
-          model: "Qwen/Qwen2-72B-Instruct",
+          model: "gpt-4o-mini",
           max_tokens: 1024,
           stream: true,
           messages,

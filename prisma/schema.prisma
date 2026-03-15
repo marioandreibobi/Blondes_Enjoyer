@@ -22,3 +22,53 @@ model Analysis {
   @@unique([repoOwner, repoName])
   @@index([repoOwner, repoName])
 }
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+
+  @@index([email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model PendingVerification {
+  id           String   @id @default(cuid())
+  email        String
+  name         String
+  passwordHash String
+  code         String
+  attempts     Int      @default(0)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([email])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  category  String
+  rating    Int
+  message   String
+  email     String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([category])
+  @@index([createdAt])
+}

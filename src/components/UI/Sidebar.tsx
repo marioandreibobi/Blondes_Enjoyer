@@ -6,13 +6,13 @@ import { X, ChevronLeft, AlertTriangle } from "lucide-react";
 import { useGraphStore } from "@/store/graph-store";
 
 const DISTRICT_LEGEND = [
-  { name: "City Center", color: "#f59e0b" },
-  { name: "Commerce", color: "#06b6d4" },
-  { name: "Industrial", color: "#a855f7" },
-  { name: "Intelligence", color: "#ec4899" },
-  { name: "QA & Testing", color: "#22c55e" },
-  { name: "Infrastructure", color: "#3b82f6" },
-  { name: "UI Quarter", color: "#f97316" },
+  { name: "City Center", color: "#E07B54" },
+  { name: "Commerce", color: "#D4A857" },
+  { name: "Industrial", color: "#9C7FCB" },
+  { name: "Intelligence", color: "#C96E45" },
+  { name: "QA & Testing", color: "#6BAF7C" },
+  { name: "Infrastructure", color: "#6B5E56" },
+  { name: "UI Quarter", color: "#D4A857" },
 ];
 
 const TYPE_ICONS: Record<string, string> = {
@@ -32,8 +32,8 @@ export default function Sidebar(): React.ReactElement {
         onClick={toggleSidebar}
         className="fixed right-0 top-1/2 -translate-y-1/2 z-40 px-2 py-4 rounded-l-lg transition-all"
         style={{
-          background: "rgba(10,14,39,0.9)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(28,22,18,0.9)",
+          border: "1px solid rgba(61,48,40,0.5)",
           borderRight: "none",
           color: "rgba(255,255,255,0.4)",
         }}
@@ -56,15 +56,15 @@ export default function Sidebar(): React.ReactElement {
         transition={{ duration: 0.3, ease: "easeOut" }}
         className="w-72 h-full overflow-y-auto flex flex-col"
         style={{
-          background: "rgba(10,14,39,0.95)",
-          borderLeft: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(28,22,18,0.95)",
+          borderLeft: "1px solid rgba(61,48,40,0.5)",
           backdropFilter: "blur(20px)",
         }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-4 py-3"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderBottom: "1px solid rgba(61,48,40,0.5)" }}
         >
           <h2 className="text-xs font-mono font-semibold tracking-wider" style={{ color: "rgba(255,255,255,0.5)" }}>
             INSPECTOR
@@ -85,7 +85,7 @@ export default function Sidebar(): React.ReactElement {
             <div className="flex items-start gap-2">
               <span className="text-lg flex-shrink-0">{TYPE_ICONS[selectedNode.type] ?? "📄"}</span>
               <div className="min-w-0">
-                <p className="text-sm font-mono font-semibold break-all" style={{ color: "#e2e8f0" }}>
+                <p className="text-sm font-mono font-semibold break-all" style={{ color: "#F2EDE8" }}>
                   {selectedNode.id.split("/").pop()}
                 </p>
                 <p className="text-[10px] font-mono mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>
@@ -111,7 +111,7 @@ export default function Sidebar(): React.ReactElement {
                   <p className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.3)" }}>
                     {item.label}
                   </p>
-                  <p className="text-xs font-mono capitalize mt-0.5" style={{ color: "#cbd5e1" }}>
+                  <p className="text-xs font-mono capitalize mt-0.5" style={{ color: "#C4BAB2" }}>
                     {item.value}
                   </p>
                 </div>
@@ -161,7 +161,7 @@ export default function Sidebar(): React.ReactElement {
         <div className="mt-auto">
           <div
             className="px-4 py-3"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ borderTop: "1px solid rgba(61,48,40,0.5)" }}
           >
             <p className="text-[9px] font-mono font-semibold uppercase tracking-wider mb-2.5" style={{ color: "rgba(255,255,255,0.4)" }}>
               DISTRICTS
@@ -185,7 +185,7 @@ export default function Sidebar(): React.ReactElement {
           {analysisResult?.ai.summary && (
             <div
               className="px-4 py-3"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ borderTop: "1px solid rgba(61,48,40,0.5)" }}
             >
               <p className="text-[9px] font-mono font-semibold uppercase tracking-wider mb-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>
                 AI SUMMARY

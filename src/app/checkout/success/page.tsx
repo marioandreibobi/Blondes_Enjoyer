@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, ArrowLeft, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
@@ -14,7 +14,7 @@ interface VerifiedSession {
   customerEmail: string | null;
 }
 
-export default function CheckoutSuccessPage(): React.ReactElement {
+function CheckoutSuccessContent(): React.ReactElement {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const [status, setStatus] = useState<"loading" | "verified" | "error">(
@@ -108,5 +108,23 @@ export default function CheckoutSuccessPage(): React.ReactElement {
         </motion.div>
       </main>
     </>
+  );
+}
+
+export default function CheckoutSuccessPage(): React.ReactElement {
+  return (
+    <Suspense
+      fallback={
+        <>
+          <BlueprintGrid />
+          <NavBar />
+          <main className="relative z-10 min-h-screen flex items-center justify-center px-4">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          </main>
+        </>
+      }
+    >
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }
