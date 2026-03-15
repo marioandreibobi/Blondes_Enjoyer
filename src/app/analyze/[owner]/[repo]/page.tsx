@@ -233,7 +233,7 @@ export default function AnalyzePage(): React.ReactElement {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={{ background: "#0a0e27" }}>
+      <main className="min-h-screen flex items-center justify-center" style={{ background: "#1A1411" }}>
         <LoadingState />
       </main>
     );
@@ -241,20 +241,20 @@ export default function AnalyzePage(): React.ReactElement {
 
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={{ background: "#0a0e27" }}>
+      <main className="min-h-screen flex items-center justify-center" style={{ background: "#1A1411" }}>
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
           className="text-center space-y-3 rounded-xl p-8"
-          style={{ background: "rgba(15,19,40,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}
+          style={{ background: "rgba(37,30,24,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}
         >
           <p className="text-lg font-medium text-red-400">Error</p>
-          <p className="text-sm text-slate-400 max-w-sm">{error}</p>
+          <p className="text-sm text-[#9A8F87] max-w-sm">{error}</p>
           <a
             href="/"
             className="inline-block mt-2 rounded-lg px-5 py-2 text-sm font-medium text-white hover:opacity-90 transition-all"
-            style={{ background: "rgba(99,102,241,0.8)" }}
+            style={{ background: "rgba(224,123,84,0.8)" }}
           >
             Back to Home
           </a>
@@ -290,12 +290,12 @@ export default function AnalyzePage(): React.ReactElement {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="min-h-screen flex flex-col pt-14"
-          style={{ background: "#0a0e27" }}
+          style={{ background: "#1A1411" }}
         >
           {/* Header */}
           <header
             className="flex items-center justify-between px-5 py-3"
-            style={{ background: "rgba(10,14,39,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ background: "rgba(28,22,18,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
           >
             <div className="flex items-center gap-3">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -313,9 +313,9 @@ export default function AnalyzePage(): React.ReactElement {
           <div className="flex-1 flex gap-4 p-4 overflow-hidden">
             <ApproachPanel
               label="Architecture Focus"
-              icon={<Brain className="h-4 w-4 text-indigo-400" />}
+              icon={<Brain className="h-4 w-4 text-primary" />}
               result={analysisResult}
-              color="rgb(99,102,241)"
+              color="rgb(224,123,84)"
               chosen={false}
               onChoose={() => setChosenApproach("A")}
             />
@@ -342,12 +342,12 @@ export default function AnalyzePage(): React.ReactElement {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="h-screen flex flex-col pt-14"
-        style={{ background: "#0a0e27" }}
+        style={{ background: "#1A1411" }}
       >
         {/* ─── Header bar ─── */}
         <header
           className="flex items-center justify-between px-5 py-2.5"
-          style={{ background: "rgba(10,14,39,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ background: "rgba(28,22,18,0.95)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
         >
           {/* Left: branding + repo name */}
           <div className="flex items-center gap-4">
@@ -376,15 +376,15 @@ export default function AnalyzePage(): React.ReactElement {
               <span style={{ color: "#f59e0b" }}>{totalLines.toLocaleString()}</span>
             </span>
             <span>
-              <span className="font-semibold" style={{ color: "#3b82f6" }}>DEPS</span>{" "}
-              <span style={{ color: "#3b82f6" }}>{totalDeps}</span>
+              <span className="font-semibold" style={{ color: "#D4A857" }}>DEPS</span>{" "}
+              <span style={{ color: "#D4A857" }}>{totalDeps}</span>
             </span>
             {chosenApproach && (
               <span
                 className="text-xs px-2 py-0.5 rounded-md font-medium"
                 style={{
                   color: chosenApproach === "A" ? "rgb(129,140,248)" : "rgb(52,211,153)",
-                  background: chosenApproach === "A" ? "rgba(99,102,241,0.15)" : "rgba(16,185,129,0.15)",
+                  background: chosenApproach === "A" ? "rgba(224,123,84,0.15)" : "rgba(16,185,129,0.15)",
                 }}
               >
                 {chosenApproach === "A" ? "Architecture" : "Security"} approach
@@ -400,7 +400,7 @@ export default function AnalyzePage(): React.ReactElement {
         {activeView === "3d" && (
           <div
             className="flex items-center gap-1 px-5 py-2"
-            style={{ background: "rgba(10,14,39,0.9)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+            style={{ background: "rgba(28,22,18,0.9)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
           >
             {CATEGORY_TABS.map((tab) => {
               const isActive = (activeCategory ?? "all") === tab.id;
@@ -411,7 +411,7 @@ export default function AnalyzePage(): React.ReactElement {
                   className="px-3 py-1 rounded-full text-xs font-mono transition-all"
                   style={
                     isActive
-                      ? { background: "rgba(99,102,241,0.8)", color: "#fff" }
+                      ? { background: "rgba(224,123,84,0.8)", color: "#fff" }
                       : { background: "transparent", color: "rgba(255,255,255,0.45)" }
                   }
                 >

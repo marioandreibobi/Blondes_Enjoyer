@@ -20,7 +20,15 @@ function buildArchitectureFallback(
 
   const descriptions: Record<string, string> = {};
   for (const n of nodes) {
-    descriptions[n.id] = `${n.type} file (${n.lines} lines, ${n.imports} imports, used by ${n.importedBy} files)`;
+    const fileName = n.id.split("/").pop() ?? n.id;
+    const article = /^[aeiou]/i.test(n.type) ? "an" : "a";
+    const usedByText = n.importedBy > 0
+      ? `It is used by ${n.importedBy} other file${n.importedBy > 1 ? "s" : ""} in the project.`
+      : "No other files depend on it directly.";
+    const importsText = n.imports > 0
+      ? `It relies on ${n.imports} other module${n.imports > 1 ? "s" : ""}.`
+      : "";
+    descriptions[n.id] = `This is ${article} ${n.type} file called ${fileName} with ${n.lines} lines of code. ${usedByText}${importsText ? " " + importsText : ""}`;
   }
 
   const riskHotspots: AIAnalysis["riskHotspots"] = sorted
@@ -93,7 +101,15 @@ function buildSecurityFallback(
 ): { ai: AIAnalysis; descriptions: Record<string, string> } {
   const descriptions: Record<string, string> = {};
   for (const n of nodes) {
-    descriptions[n.id] = `${n.type} — attack surface: ${n.type === "route" || n.type === "middleware" ? "HIGH (handles external input)" : n.type === "model" ? "MEDIUM (data layer)" : "LOW"}`;
+    const fileName = n.id.split("/").pop() ?? n.id;
+    const article = /^[aeiou]/i.test(n.type) ? "an" : "a";
+    const surfaceLevel = n.type === "route" || n.type === "middleware" ? "HIGH" : n.type === "model" ? "MEDIUM" : "LOW";
+    const surfaceText = surfaceLevel === "HIGH"
+      ? "It handles incoming requests from users, which means it could be a target for attacks."
+      : surfaceLevel === "MEDIUM"
+        ? "It works with data storage, which means it needs careful handling to prevent data leaks."
+        : "It has a low attack surface and mostly supports other parts of the application.";
+    descriptions[n.id] = `This is ${article} ${n.type} file called ${fileName}. ${surfaceText} Security exposure: ${surfaceLevel}.`;
   }
 
   const securityRelevant = nodes.filter(
@@ -325,6 +341,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const resolvedImports = resolveImports(parsedFiles, allPaths);
     const graph = buildGraph(parsedFiles, resolvedImports);
 
+    // Build file snippets for AI (first 80 lines of each file, capped at 100KB total)
+    const fileSnippets: Record<string, string> = {};
+    const MAX_SNIPPET_CHARS = 100_000;
+    let totalChars = 0;
+    for (const pf of parsedFiles) {
+      const snippet = pf.content.split("\n").slice(0, 80).join("\n");
+      if (totalChars + snippet.length > MAX_SNIPPET_CHARS) break;
+      fileSnippets[pf.path] = snippet;
+      totalChars += snippet.length;
+    }
+
     // AI analysis
     const language = await withTimeout(
       fetchRepoLanguage(owner, repo),
@@ -344,13 +371,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Run AI calls in parallel when dual mode is enabled
     const repoFullName = `${owner}/${repo}`;
     const aiPromiseA = withTimeout(
-      analyzeWithAI(repoFullName, graph.nodes, graph.links),
+      analyzeWithAI(repoFullName, graph.nodes, graph.links, fileSnippets),
       AI_CALL_TIMEOUT_MS,
       "AI analysis"
     );
     const aiPromiseB = dualMode
       ? withTimeout(
-          analyzeWithDeepSeek(repoFullName, graphNodesB, graph.links),
+          analyzeWithDeepSeek(repoFullName, graphNodesB, graph.links, fileSnippets),
           AI_CALL_TIMEOUT_MS,
           "DeepSeek analysis"
         )

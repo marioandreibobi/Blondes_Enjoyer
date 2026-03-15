@@ -11,8 +11,37 @@ interface FeedbackBody {
 
 const VALID_CATEGORIES = ["general", "bug", "feature", "other"];
 
+// In-memory rate limiter for feedback submissions
+const feedbackRateLimit = new Map<string, { count: number; firstRequest: number }>();
+const FEEDBACK_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_FEEDBACK_PER_WINDOW = 5;
+
+function checkFeedbackRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = feedbackRateLimit.get(ip);
+  if (!entry || now - entry.firstRequest > FEEDBACK_WINDOW_MS) {
+    feedbackRateLimit.set(ip, { count: 1, firstRequest: now });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= MAX_FEEDBACK_PER_WINDOW;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const clientIp =
+      request.ip ??
+      request.headers.get("x-real-ip")?.trim() ??
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+
+    if (!checkFeedbackRateLimit(clientIp)) {
+      return NextResponse.json(
+        { error: "Too many feedback submissions. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body: FeedbackBody = await request.json();
     const { category, rating, message, email } = body;
 

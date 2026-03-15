@@ -12,9 +12,9 @@ interface ViewSwitcherProps {
 }
 
 const BTN_BASE = "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all";
-const ACTIVE_STYLE = { background: "rgba(99,102,241,0.8)", color: "#fff", boxShadow: "0 0 12px rgba(99,102,241,0.3)" };
+const ACTIVE_STYLE = { background: "rgba(224,123,84,0.85)", color: "#fff", boxShadow: "0 0 12px rgba(224,123,84,0.3)" };
 const INACTIVE_STYLE = { color: "rgba(255,255,255,0.4)" };
-const EXPORT_STYLE = { background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.35)" };
+const EXPORT_STYLE = { background: "rgba(107,175,124,0.15)", color: "#6BAF7C", border: "1px solid rgba(107,175,124,0.35)" };
 
 export default function ViewSwitcher({ value, onSwitch, onExport }: ViewSwitcherProps): React.ReactElement {
   return (
@@ -29,7 +29,7 @@ export default function ViewSwitcher({ value, onSwitch, onExport }: ViewSwitcher
           style={value === "diagram" ? ACTIVE_STYLE : INACTIVE_STYLE}
         >
           <Network className="h-3.5 w-3.5" />
-          City Map
+          Blueprint
         </button>
         <button
           onClick={() => onSwitch("3d")}

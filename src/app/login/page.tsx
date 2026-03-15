@@ -51,9 +51,9 @@ export default function LoginPage(): React.ReactElement {
         >
           {/* Logo */}
           <a href="/" className="flex items-center justify-center gap-2 mb-8 group">
-            <Hexagon className="h-7 w-7" style={{ color: "#6366f1" }} />
-            <span className="text-2xl font-bold tracking-tight" style={{ color: "#e2e8f0" }}>
-              Code<span style={{ color: "#6366f1" }}>Atlas</span>
+            <Hexagon className="h-7 w-7" style={{ color: "#E07B54" }} />
+            <span className="text-2xl font-bold tracking-tight" style={{ color: "#F2EDE8" }}>
+              Code<span style={{ color: "#E07B54" }}>Atlas</span>
             </span>
           </a>
 
@@ -61,17 +61,17 @@ export default function LoginPage(): React.ReactElement {
           <div
             className="rounded-xl p-8"
             style={{
-              background: "rgba(15,19,50,0.85)",
+              background: "rgba(37,30,24,0.85)",
               border: "1px solid rgba(255,255,255,0.08)",
-              boxShadow: "0 0 40px rgba(99,102,241,0.08)",
+              boxShadow: "0 0 40px rgba(224,123,84,0.08)",
             }}
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg" style={{ background: "rgba(99,102,241,0.15)" }}>
-                <LogIn className="h-5 w-5" style={{ color: "#6366f1" }} />
+              <div className="p-2 rounded-lg" style={{ background: "rgba(224,123,84,0.15)" }}>
+                <LogIn className="h-5 w-5" style={{ color: "#E07B54" }} />
               </div>
               <div>
-                <h1 className="text-xl font-bold" style={{ color: "#e2e8f0" }}>
+                <h1 className="text-xl font-bold" style={{ color: "#F2EDE8" }}>
                   Welcome Back
                 </h1>
                 <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -109,7 +109,7 @@ export default function LoginPage(): React.ReactElement {
                   style={{
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid rgba(255,255,255,0.1)",
-                    color: "#e2e8f0",
+                    color: "#F2EDE8",
                   }}
                 />
               </div>
@@ -130,7 +130,7 @@ export default function LoginPage(): React.ReactElement {
                     style={{
                       background: "rgba(255,255,255,0.05)",
                       border: "1px solid rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
+                      color: "#F2EDE8",
                     }}
                   />
                   <button
@@ -150,8 +150,8 @@ export default function LoginPage(): React.ReactElement {
                 disabled={loading}
                 className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-50"
                 style={{
-                  background: loading ? "rgba(99,102,241,0.5)" : "rgba(99,102,241,0.85)",
-                  boxShadow: "0 0 20px rgba(99,102,241,0.25)",
+                  background: loading ? "rgba(224,123,84,0.5)" : "rgba(224,123,84,0.85)",
+                  boxShadow: "0 0 20px rgba(224,123,84,0.25)",
                 }}
               >
                 {loading ? "Signing In..." : "Sign In"}
@@ -164,7 +164,7 @@ export default function LoginPage(): React.ReactElement {
               <a
                 href="/signup"
                 className="font-medium hover:underline"
-                style={{ color: "#6366f1" }}
+                style={{ color: "#E07B54" }}
               >
                 Create one
               </a>

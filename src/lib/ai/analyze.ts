@@ -25,9 +25,14 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   }
 }
 
-function parseAIResponse(text: string): { ai: AIAnalysis; descriptions: Record<string, string> } {
+function parseAIResponse(
+  text: string,
+  nodeIds?: string[]
+): { ai: AIAnalysis; descriptions: Record<string, string> } {
   // Strip markdown fences
   let cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+
+  console.log("AI response length:", text.length, "chars");
 
   // If still not valid JSON, try to extract the first { ... } block
   let parsed: RawAIResponse;
@@ -40,41 +45,53 @@ function parseAIResponse(text: string): { ai: AIAnalysis; descriptions: Record<s
       try {
         parsed = JSON.parse(cleaned.slice(start, end + 1));
       } catch {
-        console.error("AI raw response (failed to parse):", text.substring(0, 500));
+        console.error("AI raw response (failed to parse):", text.substring(0, 1000));
         throw new Error("Failed to parse AI response as JSON");
       }
     } else {
-      console.error("AI raw response (no JSON found):", text.substring(0, 500));
+      console.error("AI raw response (no JSON found):", text.substring(0, 1000));
       throw new Error("Failed to parse AI response as JSON");
     }
   }
 
   const ai: AIAnalysis = {
-    summary: parsed.summary,
+    summary: parsed.summary ?? "",
     riskHotspots: parsed.riskHotspots ?? [],
     onboarding: parsed.onboarding ?? { steps: [] },
   };
 
-  return { ai, descriptions: parsed.fileDescriptions ?? {} };
+  const descriptions = parsed.fileDescriptions ?? {};
+
+  // Fill gaps: if the AI missed some files, add a readable fallback
+  if (nodeIds) {
+    for (const id of nodeIds) {
+      if (!descriptions[id]) {
+        console.warn(`AI missed description for: ${id}`);
+      }
+    }
+  }
+
+  return { ai, descriptions };
 }
 
 export async function analyzeWithAI(
   repoName: string,
   nodes: GraphNode[],
-  links: GraphLink[]
+  links: GraphLink[],
+  fileSnippets?: Record<string, string>
 ): Promise<{ ai: AIAnalysis; descriptions: Record<string, string> }> {
   const client = getAIClient();
-  const prompt = buildAnalysisPrompt(repoName, nodes, links);
+  const prompt = buildAnalysisPrompt(repoName, nodes, links, fileSnippets);
 
   const MAX_RETRIES = 3;
-  const REQUEST_TIMEOUT_MS = 45000;
+  const REQUEST_TIMEOUT_MS = 60000;
   let completion;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
       completion = await withTimeout(
         client.chat.completions.create({
           model: "Qwen/Qwen2-72B-Instruct",
-          max_tokens: 4096,
+          max_tokens: 8192,
           messages: [
             {
               role: "system",
@@ -108,16 +125,17 @@ export async function analyzeWithAI(
     throw new Error("No text response from AI");
   }
 
-  return parseAIResponse(text);
+  return parseAIResponse(text, nodes.map((n) => n.id));
 }
 
 export async function analyzeWithDeepSeek(
   repoName: string,
   nodes: GraphNode[],
-  links: GraphLink[]
+  links: GraphLink[],
+  fileSnippets?: Record<string, string>
 ): Promise<{ ai: AIAnalysis; descriptions: Record<string, string> }> {
   const client = getAIClient();
-  const prompt = buildSecurityFocusedPrompt(repoName, nodes, links);
+  const prompt = buildSecurityFocusedPrompt(repoName, nodes, links, fileSnippets);
 
   const MAX_RETRIES = 5;
   let completion;
@@ -125,7 +143,7 @@ export async function analyzeWithDeepSeek(
     try {
       completion = await client.chat.completions.create({
         model: "gpt-4o",
-        max_tokens: 4096,
+        max_tokens: 8192,
         messages: [
           {
             role: "system",
@@ -154,5 +172,5 @@ export async function analyzeWithDeepSeek(
     throw new Error("No text response from security AI");
   }
 
-  return parseAIResponse(text);
+  return parseAIResponse(text, nodes.map((n) => n.id));
 }

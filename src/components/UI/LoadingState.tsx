@@ -13,16 +13,16 @@ export default function LoadingState(): React.ReactElement {
       className="flex flex-col items-center justify-center gap-6 p-12"
     >
       <div className="relative h-20 w-20">
-        <div className="absolute inset-0 rounded-full animate-pulse-glow" style={{ boxShadow: "0 0 30px rgba(99,102,241,0.3)" }} />
+        <div className="absolute inset-0 rounded-full animate-pulse-glow" style={{ boxShadow: "0 0 30px rgba(224,123,84,0.3)" }} />
         <div className="absolute inset-0 flex items-center justify-center animate-hex-spin">
-          <Hexagon className="h-12 w-12" strokeWidth={1.5} style={{ color: "#6366f1" }} />
+          <Hexagon className="h-12 w-12" strokeWidth={1.5} style={{ color: "#E07B54" }} />
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <Hexagon className="h-6 w-6" strokeWidth={2} style={{ color: "rgba(99,102,241,0.5)" }} />
+          <Hexagon className="h-6 w-6" strokeWidth={2} style={{ color: "rgba(224,123,84,0.5)" }} />
         </div>
       </div>
       <div className="text-center space-y-2">
-        <p className="text-lg font-semibold" style={{ color: "#e2e8f0" }}>
+        <p className="text-lg font-semibold" style={{ color: "#F2EDE8" }}>
           Mapping your architecture...
         </p>
         <p className="text-sm font-mono" style={{ color: "rgba(255,255,255,0.4)" }}>

@@ -53,12 +53,12 @@ const config: Config = {
           foreground: "hsl(var(--popover-foreground))",
         },
         blueprint: {
-          line: "rgba(56, 120, 200, 0.08)",
-          glow: "rgba(56, 120, 200, 0.15)",
+          line: "rgba(61, 48, 40, 0.25)",
+          glow: "rgba(224, 123, 84, 0.15)",
         },
         ink: {
-          DEFAULT: "hsl(225 15% 55%)",
-          light: "hsl(225 15% 75%)",
+          DEFAULT: "hsl(22 8% 55%)",
+          light: "hsl(22 8% 75%)",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
