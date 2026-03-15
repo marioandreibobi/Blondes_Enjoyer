@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import ForceGraphFactory from "force-graph";
 
 type HeroNode = { id: string; type: string; x?: number; y?: number };
 type HeroLink = { source: string; target: string };
@@ -59,42 +58,51 @@ export default function HeroMiniGraph(): React.ReactElement {
   useEffect(() => {
     if (!mounted || !containerRef.current || typeof window === "undefined") return;
 
-    const graph = (
-      ForceGraphFactory as unknown as () => (element: HTMLElement) => HeroMiniGraphInstance
-    )()(containerRef.current);
+    let graph: HeroMiniGraphInstance | null = null;
+    let resizeHandler: (() => void) | null = null;
 
-    const resize = () => {
+    import("force-graph").then(({ default: ForceGraphFactory }) => {
       if (!containerRef.current) return;
-      graph.width(containerRef.current.clientWidth);
-      graph.height(containerRef.current.clientHeight);
-    };
 
-    resize();
+      graph = (
+        ForceGraphFactory as unknown as () => (element: HTMLElement) => HeroMiniGraphInstance
+      )()(containerRef.current);
 
-    graph
-      .backgroundColor("rgba(0,0,0,0)")
-      .nodeVal((node) => (node.type === "entry" ? 6 : 4))
-      .nodeColor((node) => NODE_COLORS[node.type] ?? "#868e96")
-      .nodeCanvasObject((node, ctx) => {
-        const label = node.id;
-        ctx.fillStyle = "rgba(226,232,240,0.85)";
-        ctx.font = "8px monospace";
-        ctx.fillText(label, (node.x ?? 0) + 6, (node.y ?? 0) - 6);
-      })
-      .linkColor(() => "rgba(56,120,200,0.28)")
-      .linkWidth(0.8)
-      .enableNodeDrag(false)
-      .graphData({
-        nodes: SAMPLE_NODES.map((n) => ({ ...n })),
-        links: SAMPLE_LINKS.map((l) => ({ source: l.source, target: l.target })),
-      });
+      const resize = () => {
+        if (!containerRef.current || !graph) return;
+        graph.width(containerRef.current.clientWidth);
+        graph.height(containerRef.current.clientHeight);
+      };
 
-    graph.zoom(2.3, 0);
+      resize();
 
-    window.addEventListener("resize", resize);
+      graph
+        .backgroundColor("rgba(0,0,0,0)")
+        .nodeVal((node) => (node.type === "entry" ? 6 : 4))
+        .nodeColor((node) => NODE_COLORS[node.type] ?? "#868e96")
+        .nodeCanvasObject((node, ctx) => {
+          const label = node.id;
+          ctx.fillStyle = "rgba(226,232,240,0.85)";
+          ctx.font = "8px monospace";
+          ctx.fillText(label, (node.x ?? 0) + 6, (node.y ?? 0) - 6);
+        })
+        .linkColor(() => "rgba(56,120,200,0.28)")
+        .linkWidth(0.8)
+        .enableNodeDrag(false)
+        .graphData({
+          nodes: SAMPLE_NODES.map((n) => ({ ...n })),
+          links: SAMPLE_LINKS.map((l) => ({ source: l.source, target: l.target })),
+        });
+
+      graph.zoom(2.3, 0);
+
+      resizeHandler = resize;
+      window.addEventListener("resize", resize);
+    });
+
     return () => {
-      window.removeEventListener("resize", resize);
-      graph._destructor?.();
+      if (resizeHandler) window.removeEventListener("resize", resizeHandler);
+      graph?._destructor?.();
     };
   }, [mounted]);
 
