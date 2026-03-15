@@ -58,7 +58,6 @@ model PendingVerification {
   createdAt    DateTime @default(now())
 
   @@index([email])
-  @@index([code])
 }
 
 model Feedback {
