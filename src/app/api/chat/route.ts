@@ -14,6 +14,12 @@ const MAX_CHAT_PER_WINDOW = 20;
 
 function checkChatRateLimit(ip: string): boolean {
   const now = Date.now();
+  // Periodic cleanup to prevent memory leak
+  if (chatRateLimit.size > 10000) {
+    for (const [key, val] of chatRateLimit.entries()) {
+      if (now - val.firstRequest > CHAT_WINDOW_MS * 2) chatRateLimit.delete(key);
+    }
+  }
   const entry = chatRateLimit.get(ip);
   if (!entry || now - entry.firstRequest > CHAT_WINDOW_MS) {
     chatRateLimit.set(ip, { count: 1, firstRequest: now });
@@ -23,12 +29,16 @@ function checkChatRateLimit(ip: string): boolean {
   return entry.count <= MAX_CHAT_PER_WINDOW;
 }
 
-function buildChatSystemPrompt(context: ChatRequest["context"]): string {
+function sanitizeForPrompt(str: string): string {
+  return str.replace(/[\x00-\x1f]/g, "").slice(0, 300);
+}
+
+function buildChatSystemPrompt(context: ChatRequest["context"], mood?: string): string {
   const nodesSummary = context.nodes
     .slice(0, MAX_NODES_IN_CONTEXT)
     .map(
       (n) =>
-        `- ${n.id} (${n.type}, ${n.lines} lines, complexity: ${n.complexity})${n.description ? `: ${n.description}` : ""}${n.risk ? ` [RISK: ${n.risk}]` : ""}`
+        `- ${sanitizeForPrompt(n.id)} (${sanitizeForPrompt(n.type)}, ${n.lines} lines, complexity: ${sanitizeForPrompt(n.complexity)})${n.description ? `: ${sanitizeForPrompt(n.description)}` : ""}${n.risk ? ` [RISK: ${sanitizeForPrompt(n.risk)}]` : ""}`
     )
     .join("\n");
 
@@ -100,7 +110,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const client = getAIClient();
-    const systemPrompt = buildChatSystemPrompt(context);
+    const systemPrompt = buildChatSystemPrompt(context, mood);
 
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
       { role: "system", content: systemPrompt },

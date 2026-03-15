@@ -212,6 +212,12 @@ const MAX_ANALYZE_PER_WINDOW = 10;
 
 function checkAnalyzeRateLimit(ip: string): boolean {
   const now = Date.now();
+  // Periodic cleanup to prevent memory leak
+  if (analyzeRateLimit.size > 10000) {
+    for (const [key, val] of analyzeRateLimit.entries()) {
+      if (now - val.firstRequest > ANALYZE_WINDOW_MS * 2) analyzeRateLimit.delete(key);
+    }
+  }
   const entry = analyzeRateLimit.get(ip);
   if (!entry || now - entry.firstRequest > ANALYZE_WINDOW_MS) {
     analyzeRateLimit.set(ip, { count: 1, firstRequest: now });

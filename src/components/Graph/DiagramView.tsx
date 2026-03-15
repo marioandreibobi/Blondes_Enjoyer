@@ -384,7 +384,7 @@ export default function DiagramView(): React.ReactElement {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-sm font-bold tracking-wider uppercase" style={{ color: "rgba(255,255,255,0.7)" }}>
-                City Map View
+                Blueprint View
               </h2>
               <p className="text-xs text-[#6B5E56] mt-0.5">
                 {totalFiles} files Â· {totalLines.toLocaleString()} lines
