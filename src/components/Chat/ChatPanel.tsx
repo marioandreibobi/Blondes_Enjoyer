@@ -54,32 +54,44 @@ export default function ChatPanel(): React.ReactElement {
     const SpeechRecognitionCtor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) return;
 
-    const recognition: SpeechRecognitionAPI = new SpeechRecognitionCtor();
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.continuous = false;
+    // Explicitly request microphone permission first to trigger browser prompt
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        // Stop the stream immediately — we just needed the permission
+        stream.getTracks().forEach((t) => t.stop());
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any): void => {
-      const transcript = event.results?.[0]?.[0]?.transcript ?? "";
-      if (transcript) {
-        setInput((prev) => (prev ? prev + " " + transcript : transcript));
-      }
-      setListening(false);
-    };
+        const recognition: SpeechRecognitionAPI = new SpeechRecognitionCtor();
+        recognition.lang = "en-US";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.continuous = false;
 
-    recognition.onerror = (): void => {
-      setListening(false);
-    };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onresult = (event: any): void => {
+          const transcript = event.results?.[0]?.[0]?.transcript ?? "";
+          if (transcript) {
+            setInput((prev) => (prev ? prev + " " + transcript : transcript));
+          }
+          setListening(false);
+        };
 
-    recognition.onend = (): void => {
-      setListening(false);
-    };
+        recognition.onerror = (): void => {
+          setListening(false);
+        };
 
-    recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
+        recognition.onend = (): void => {
+          setListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+        setListening(true);
+      })
+      .catch(() => {
+        // Microphone permission denied or unavailable
+        setListening(false);
+      });
   }, [listening]);
 
   const speakMessage = useCallback((id: string, text: string): void => {
