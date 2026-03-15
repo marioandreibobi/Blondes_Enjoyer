@@ -58,18 +58,20 @@ export default function HeroMiniGraph(): React.ReactElement {
   useEffect(() => {
     if (!mounted || !containerRef.current || typeof window === "undefined") return;
 
-    let graph: HeroMiniGraphInstance | null = null;
+    let destroyed = false;
+    let graphInstance: HeroMiniGraphInstance | null = null;
     let resizeHandler: (() => void) | null = null;
 
-    import("force-graph").then(({ default: ForceGraphFactory }) => {
-      if (!containerRef.current) return;
+    import("force-graph").then((mod) => {
+      if (destroyed || !containerRef.current) return;
+      const ForceGraphFactory = mod.default;
 
-      graph = (
+      const graph = (
         ForceGraphFactory as unknown as () => (element: HTMLElement) => HeroMiniGraphInstance
       )()(containerRef.current);
 
       const resize = () => {
-        if (!containerRef.current || !graph) return;
+        if (!containerRef.current) return;
         graph.width(containerRef.current.clientWidth);
         graph.height(containerRef.current.clientHeight);
       };
@@ -96,13 +98,15 @@ export default function HeroMiniGraph(): React.ReactElement {
 
       graph.zoom(2.3, 0);
 
-      resizeHandler = resize;
       window.addEventListener("resize", resize);
+      resizeHandler = resize;
+      graphInstance = graph;
     });
 
     return () => {
+      destroyed = true;
       if (resizeHandler) window.removeEventListener("resize", resizeHandler);
-      graph?._destructor?.();
+      graphInstance?._destructor?.();
     };
   }, [mounted]);
 

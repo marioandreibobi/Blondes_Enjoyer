@@ -9,24 +9,61 @@ import Footer from "@/components/UI/Footer";
 export default function FeedbackPage(): React.ReactElement {
   const [submitted, setSubmitted] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>): void {
+    e.preventDefault();
+
     const form = e.currentTarget;
     if (!form.checkValidity()) return;
 
-    e.preventDefault();
+    setError(null);
 
     const formData = new FormData(form);
 
-    fetch("https://formsubmit.co/ajax/filipcostache8@gmail.com", {
+    const ratingMap: Record<string, number> = {
+      Excellent: 5,
+      Good: 4,
+      Average: 3,
+      "Needs Improvement": 2,
+      Poor: 1,
+    };
+
+    const impression = formData.get("Overall Impression") as string;
+    const upsides = formData.get("Upsides") as string;
+    const downsides = formData.get("Downsides") as string;
+    const improvements = formData.get("Improvements") as string;
+    const email = formData.get("Email") as string;
+
+    const message = [
+      `Upsides: ${upsides}`,
+      `Downsides: ${downsides}`,
+      improvements ? `Improvements: ${improvements}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    fetch("/api/feedback", {
       method: "POST",
-      headers: { Accept: "application/json" },
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: "general",
+        rating: ratingMap[impression] ?? 3,
+        message,
+        email: email || undefined,
+      }),
     })
       .then((res) => {
-        if (res.ok) setSubmitted(true);
+        if (res.ok) {
+          setSubmitted(true);
+        } else {
+          return res.json().then((data) => {
+            setError(data.error || "Failed to send feedback. Please try again.");
+          });
+        }
       })
       .catch(() => {
-        // silently fail — user can retry
+        setError("Network error. Please try again.");
       });
   }
 
@@ -79,10 +116,18 @@ export default function FeedbackPage(): React.ReactElement {
               </p>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                {/* Hidden FormSubmit config */}
-                <input type="hidden" name="_subject" value="CodeAtlas Feedback" />
-                <input type="hidden" name="_template" value="table" />
-                <input type="hidden" name="_captcha" value="false" />
+                {error && (
+                  <div
+                    className="rounded-lg border px-4 py-3 text-sm"
+                    style={{
+                      background: "rgba(239,68,68,0.1)",
+                      borderColor: "rgba(239,68,68,0.3)",
+                      color: "#fca5a5",
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
 
                 {/* Overall impression */}
                 <div className="flex flex-col gap-2">
