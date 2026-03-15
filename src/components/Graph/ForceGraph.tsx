@@ -39,16 +39,6 @@ const STORE_CATEGORY_MAP: Record<string, CategoryType[]> = {
   config: ["configuration"],
 };
 
-// ─── Category cluster anchors (world-space) ───────────────────
-
-const CATEGORY_ANCHORS: Record<CategoryType, { x: number; y: number }> = {
-  core:          { x: 0,    y: 0    },
-  services:      { x: 500,  y: -100 },
-  utilities:     { x: -500, y: 50   },
-  qa:            { x: 250,  y: 450  },
-  configuration: { x: -300, y: 400  },
-};
-
 // ─── Color definitions ────────────────────────────────────────
 
 const NODE_COLORS: Record<CategoryType, { dot: string; bg: string; border: string; text: string }> = {
@@ -122,14 +112,20 @@ export default function ForceGraph(): React.ReactElement {
   const isDragging = useRef(false);
   const dragNode = useRef<CanvasNode | null>(null);
 
-  // Camera state (refs for perf — no re-renders on zoom/pan)
-  const zoomRef = useRef(0.55);
-  const panRef = useRef({ x: 0, y: 0 });
-  const isPanningRef = useRef(false);
-  const panStartRef = useRef({ x: 0, y: 0 });
-  const panDistRef = useRef(0);
-  const autoFitDoneRef = useRef(false);
-  const tickCountRef = useRef(0);
+  // Camera transform for zoom/pan
+  const cameraRef = useRef({ x: 0, y: 0, scale: 1 });
+  const isPanning = useRef(false);
+  const panStart = useRef({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+
+  /** Convert screen coordinates to world coordinates */
+  const screenToWorld = useCallback((sx: number, sy: number): { x: number; y: number } => {
+    const cam = cameraRef.current;
+    return {
+      x: (sx - cam.x) / cam.scale,
+      y: (sy - cam.y) / cam.scale,
+    };
+  }, []);
 
   const analysisResult = useGraphStore((s) => s.analysisResult);
   const activeCategory = useGraphStore((s) => s.activeCategory);
@@ -146,49 +142,15 @@ export default function ForceGraph(): React.ReactElement {
     return "all";
   }, [activeCategory]);
 
-  // ─── Screen ↔ World coordinate conversion ─────────────────
-
-  const screenToWorld = useCallback((sx: number, sy: number): { x: number; y: number } => {
-    return {
-      x: (sx - panRef.current.x) / zoomRef.current,
-      y: (sy - panRef.current.y) / zoomRef.current,
-    };
-  }, []);
-
-  // ─── Fit to screen ────────────────────────────────────────
-
-  const fitToScreen = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || nodes.length === 0) return;
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    const padding = 60;
-
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const n of nodes) {
-      if (n.x < minX) minX = n.x;
-      if (n.y < minY) minY = n.y;
-      if (n.x > maxX) maxX = n.x;
-      if (n.y > maxY) maxY = n.y;
-    }
-
-    const graphW = maxX - minX || 1;
-    const graphH = maxY - minY || 1;
-    const zoom = Math.min((w - padding * 2) / graphW, (h - padding * 2) / graphH, 2);
-    const clampedZoom = Math.max(0.15, Math.min(3, zoom));
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-
-    zoomRef.current = clampedZoom;
-    panRef.current = { x: w / 2 - cx * clampedZoom, y: h / 2 - cy * clampedZoom };
-  }, [nodes]);
-
-  // ─── Initialize nodes and edges from store data ───────────
-
+  // Initialize nodes and edges from store data
   useEffect(() => {
     if (!analysisResult) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    const cx = w / 2;
+    const cy = h / 2;
 
     let sourceNodes = analysisResult.graph.nodes;
     if (typeFilters.size > 0) {
@@ -198,21 +160,17 @@ export default function ForceGraph(): React.ReactElement {
       sourceNodes = sourceNodes.filter((n) => n.complexity === complexityFilter);
     }
 
-    const scaleFactor = sourceNodes.length > 80 ? 1 + sourceNodes.length / 200 : 1;
-
     const initialized: CanvasNode[] = sourceNodes.map((n, i) => {
-      const cat = getCategory(n.type);
-      const anchor = CATEGORY_ANCHORS[cat];
-      const angle = (i / sourceNodes.length) * Math.PI * 2 + Math.random() * 0.5;
-      const r = (120 + Math.random() * 100) * scaleFactor;
+      const angle = (i / sourceNodes.length) * Math.PI * 2;
+      const r = 180 + Math.random() * 80;
       return {
         ...n,
-        x: anchor.x * scaleFactor + Math.cos(angle) * r,
-        y: anchor.y * scaleFactor + Math.sin(angle) * r,
+        x: cx + Math.cos(angle) * r,
+        y: cy + Math.sin(angle) * r,
         vx: 0,
         vy: 0,
         name: n.id.split("/").pop() ?? n.id,
-        category: cat,
+        category: getCategory(n.type),
         complexityNum: complexityToNumber(n.complexity),
       };
     });
@@ -226,15 +184,10 @@ export default function ForceGraph(): React.ReactElement {
       })
       .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
 
-    // Center camera on world origin
-    panRef.current = { x: canvas.offsetWidth / 2, y: canvas.offsetHeight / 2 };
-
     setNodes(initialized);
     setEdges(graphEdges);
     setSelectedNode(null);
     setHoveredNode(null);
-    autoFitDoneRef.current = false;
-    tickCountRef.current = 0;
   }, [analysisResult, typeFilters, complexityFilter]);
 
   // ─── Drawing ──────────────────────────────────────────────
@@ -249,13 +202,11 @@ export default function ForceGraph(): React.ReactElement {
     canvas.height = canvas.offsetHeight;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const zoom = zoomRef.current;
-    const pan = panRef.current;
-
     // Apply camera transform
+    const cam = cameraRef.current;
     ctx.save();
-    ctx.translate(pan.x, pan.y);
-    ctx.scale(zoom, zoom);
+    ctx.translate(cam.x, cam.y);
+    ctx.scale(cam.scale, cam.scale);
 
     const filteredNodeIds = new Set(
       filterCategory === "all"
@@ -264,22 +215,29 @@ export default function ForceGraph(): React.ReactElement {
     );
 
     // Draw edges
+    ctx.save();
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.12)";
+    ctx.lineWidth = 1;
+
     for (const edge of edges) {
       const src = nodes.find((n) => n.id === edge.source);
       const tgt = nodes.find((n) => n.id === edge.target);
       if (!src || !tgt) continue;
       if (!filteredNodeIds.has(src.id) || !filteredNodeIds.has(tgt.id)) continue;
 
-      const isHighlighted = selectedNode?.id === src.id || selectedNode?.id === tgt.id;
       ctx.beginPath();
-      ctx.setLineDash([4 / zoom, 8 / zoom]);
-      ctx.strokeStyle = isHighlighted ? "rgba(56, 189, 248, 0.5)" : "rgba(56, 189, 248, 0.1)";
-      ctx.lineWidth = (isHighlighted ? 1.5 : 0.8) / zoom;
+      ctx.setLineDash([4, 8]);
+      ctx.strokeStyle =
+        selectedNode?.id === src.id || selectedNode?.id === tgt.id
+          ? "rgba(56, 189, 248, 0.5)"
+          : "rgba(56, 189, 248, 0.1)";
+      ctx.lineWidth = selectedNode?.id === src.id || selectedNode?.id === tgt.id ? 1.5 : 0.8;
       ctx.moveTo(src.x, src.y);
       ctx.lineTo(tgt.x, tgt.y);
       ctx.stroke();
     }
     ctx.setLineDash([]);
+    ctx.restore();
 
     // Draw nodes
     for (const node of nodes) {
@@ -312,23 +270,8 @@ export default function ForceGraph(): React.ReactElement {
         ctx.beginPath();
         ctx.arc(node.x, node.y, radius + 3, 0, Math.PI * 2);
         ctx.strokeStyle = colors.dot + "88";
-        ctx.lineWidth = 2 / zoom;
+        ctx.lineWidth = 2;
         ctx.stroke();
-      }
-
-      // Pin indicator (small diamond) for pinned nodes
-      if (node.fx !== undefined) {
-        const px = node.x + radius + 4;
-        const py = node.y - radius - 2;
-        const s = 3;
-        ctx.beginPath();
-        ctx.moveTo(px, py - s);
-        ctx.lineTo(px + s, py);
-        ctx.lineTo(px, py + s);
-        ctx.lineTo(px - s, py);
-        ctx.closePath();
-        ctx.fillStyle = "#fbbf24";
-        ctx.fill();
       }
 
       // Risk indicator dot
@@ -337,58 +280,48 @@ export default function ForceGraph(): React.ReactElement {
       ctx.fillStyle = riskColor;
       ctx.fill();
 
-      // Label (constant screen-size via inverse zoom scaling)
+      // Label
       if (isHovered || isSelected || radius > 9) {
-        const fontSize = 11 / zoom;
-        ctx.font = `bold ${fontSize}px monospace`;
+        ctx.font = "bold 10px monospace";
         ctx.fillStyle = isHovered || isSelected ? "#e2e8f0" : colors.text + "aa";
         ctx.textAlign = "center";
-        ctx.fillText(node.name.replace(/\.(tsx?|js|py|mjs|ts)$/, ""), node.x, node.y + radius + fontSize + 2);
+        ctx.fillText(node.name.replace(/\.(tsx?|js|py|mjs|ts)$/, ""), node.x, node.y + radius + 14);
       }
     }
 
-    ctx.restore();
+    ctx.restore(); // Restore camera transform
   }, [nodes, edges, hoveredNode, selectedNode, filterCategory]);
 
   // ─── Physics simulation ───────────────────────────────────
 
   useEffect(() => {
     if (nodes.length === 0) return;
-
-    const count = nodes.length;
-    const scaleFactor = count > 80 ? 1 + count / 200 : 1;
-    const repulsionStrength = 10000 * scaleFactor;
-    const idealLen = 250 * scaleFactor;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
 
     const simulate = (): void => {
-      tickCountRef.current++;
-
       setNodes((prev) => {
         const next = prev.map((n) => ({ ...n }));
-
-        // Very gentle center gravity (prevents infinite drift)
-        for (const n of next) {
-          if (n.fx !== undefined) continue;
-          n.vx += (0 - n.x) * 0.0001;
-          n.vy += (0 - n.y) * 0.0001;
-        }
-
-        // Category clustering force
-        for (const n of next) {
-          if (n.fx !== undefined) continue;
-          const anchor = CATEGORY_ANCHORS[n.category];
-          n.vx += (anchor.x * scaleFactor - n.x) * 0.003;
-          n.vy += (anchor.y * scaleFactor - n.y) * 0.003;
-        }
-
-        // Repulsion (stronger + scales with node count)
+        const cx = w / 2;
+        const cy = h / 2;
         const k = 0.01;
+
+        // Center gravity
+        for (const n of next) {
+          if (n.fx !== undefined) continue;
+          n.vx += (cx - n.x) * 0.0008;
+          n.vy += (cy - n.y) * 0.0008;
+        }
+
+        // Repulsion
         for (let i = 0; i < next.length; i++) {
           for (let j = i + 1; j < next.length; j++) {
             const dx = next[j].x - next[i].x;
             const dy = next[j].y - next[i].y;
             const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
-            const repulsion = (repulsionStrength / (dist * dist)) * k;
+            const repulsion = (2400 / (dist * dist)) * k;
             if (next[i].fx === undefined) {
               next[i].vx -= (dx / dist) * repulsion;
               next[i].vy -= (dy / dist) * repulsion;
@@ -400,7 +333,7 @@ export default function ForceGraph(): React.ReactElement {
           }
         }
 
-        // Edge attraction (longer ideal distance)
+        // Edge attraction
         for (const edge of edges) {
           const src = next.find((n) => n.id === edge.source);
           const tgt = next.find((n) => n.id === edge.target);
@@ -408,7 +341,8 @@ export default function ForceGraph(): React.ReactElement {
           const dx = tgt.x - src.x;
           const dy = tgt.y - src.y;
           const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
-          const force = ((dist - idealLen) / dist) * 0.03;
+          const idealLen = 120;
+          const force = ((dist - idealLen) / dist) * 0.04;
           if (src.fx === undefined) {
             src.vx += dx * force;
             src.vy += dy * force;
@@ -419,48 +353,22 @@ export default function ForceGraph(): React.ReactElement {
           }
         }
 
-        // Damping — no boundary clamping (camera handles viewport)
+        // Damping + boundary clamping
         for (const n of next) {
           if (n.fx !== undefined) {
             n.x = n.fx;
             n.y = n.fy!;
             continue;
           }
-          n.vx *= 0.88;
-          n.vy *= 0.88;
+          n.vx *= 0.85;
+          n.vy *= 0.85;
           n.x += n.vx;
           n.y += n.vy;
+          n.x = Math.max(20, Math.min(w - 20, n.x));
+          n.y = Math.max(20, Math.min(h - 20, n.y));
         }
-
-        // Auto-fit after initial settling (tick 40)
-        if (!autoFitDoneRef.current && tickCountRef.current === 40) {
-          autoFitDoneRef.current = true;
-          const canvas = canvasRef.current;
-          if (canvas && next.length > 0) {
-            const w = canvas.offsetWidth;
-            const h = canvas.offsetHeight;
-            const pad = 60;
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            for (const n of next) {
-              if (n.x < minX) minX = n.x;
-              if (n.y < minY) minY = n.y;
-              if (n.x > maxX) maxX = n.x;
-              if (n.y > maxY) maxY = n.y;
-            }
-            const gw = maxX - minX || 1;
-            const gh = maxY - minY || 1;
-            const z = Math.max(0.15, Math.min(2, Math.min((w - pad * 2) / gw, (h - pad * 2) / gh)));
-            zoomRef.current = z;
-            panRef.current = {
-              x: w / 2 - ((minX + maxX) / 2) * z,
-              y: h / 2 - ((minY + maxY) / 2) * z,
-            };
-          }
-        }
-
         return next;
       });
-
       animFrameRef.current = requestAnimationFrame(simulate);
     };
     animFrameRef.current = requestAnimationFrame(simulate);
@@ -472,47 +380,21 @@ export default function ForceGraph(): React.ReactElement {
     draw();
   }, [draw]);
 
-  // ─── Scroll-wheel zoom (imperative for non-passive) ───────
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const onWheel = (e: WheelEvent): void => {
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const oldZoom = zoomRef.current;
-      const factor = e.deltaY > 0 ? 0.92 : 1.08;
-      const newZoom = Math.max(0.15, Math.min(3, oldZoom * factor));
-
-      panRef.current = {
-        x: sx - (sx - panRef.current.x) * (newZoom / oldZoom),
-        y: sy - (sy - panRef.current.y) * (newZoom / oldZoom),
-      };
-      zoomRef.current = newZoom;
-    };
-
-    canvas.addEventListener("wheel", onWheel, { passive: false });
-    return () => canvas.removeEventListener("wheel", onWheel);
-  }, []);
-
   // ─── Interaction helpers ──────────────────────────────────
 
   const getNodeAt = useCallback(
-    (wx: number, wy: number): CanvasNode | null => {
+    (sx: number, sy: number): CanvasNode | null => {
+      const { x, y } = screenToWorld(sx, sy);
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i];
-        const dx = n.x - wx;
-        const dy = n.y - wy;
+        const dx = n.x - x;
+        const dy = n.y - y;
         const r = Math.max(6, Math.min(14, 5 + n.complexityNum / 12));
-        const hit = r + 6 / zoomRef.current;
-        if (dx * dx + dy * dy <= hit * hit) return n;
+        if (dx * dx + dy * dy <= (r + 6) * (r + 6)) return n;
       }
       return null;
     },
-    [nodes]
+    [nodes, screenToWorld]
   );
 
   const handleMouseMove = useCallback(
@@ -521,37 +403,33 @@ export default function ForceGraph(): React.ReactElement {
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
 
-      // Panning
-      if (isPanningRef.current) {
-        const dx = sx - panStartRef.current.x;
-        const dy = sy - panStartRef.current.y;
-        panDistRef.current += Math.sqrt(dx * dx + dy * dy);
-        panRef.current = { x: panRef.current.x + dx, y: panRef.current.y + dy };
-        panStartRef.current = { x: sx, y: sy };
+      // Handle canvas panning
+      if (isPanning.current) {
+        const cam = cameraRef.current;
+        cam.x += sx - panStart.current.x;
+        cam.y += sy - panStart.current.y;
+        panStart.current = { x: sx, y: sy };
+        draw();
         return;
       }
 
-      const world = screenToWorld(sx, sy);
-
-      // Dragging a node
-      if (isDragging.current && dragNode.current) {
-        const dragId = dragNode.current.id;
+      const dragging = dragNode.current;
+      if (isDragging.current && dragging) {
+        const { x: wx, y: wy } = screenToWorld(sx, sy);
+        const dragId = dragging.id;
         setNodes((prev) =>
-          prev.map((n) =>
-            n.id === dragId ? { ...n, fx: world.x, fy: world.y, x: world.x, y: world.y } : n
-          )
+          prev.map((n) => (n.id === dragId ? { ...n, fx: wx, fy: wy, x: wx, y: wy } : n))
         );
         return;
       }
-
-      const node = getNodeAt(world.x, world.y);
+      const node = getNodeAt(sx, sy);
       setHoveredNode(node);
       storeHoverNode(node as GraphNode | null);
       if (canvasRef.current) {
-        canvasRef.current.style.cursor = node ? "pointer" : "grab";
+        canvasRef.current.style.cursor = node ? "pointer" : isPanning.current ? "grabbing" : "default";
       }
     },
-    [getNodeAt, storeHoverNode, screenToWorld]
+    [getNodeAt, storeHoverNode, screenToWorld, draw]
   );
 
   const handleMouseDown = useCallback(
@@ -559,85 +437,95 @@ export default function ForceGraph(): React.ReactElement {
       const rect = canvasRef.current!.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
-      const world = screenToWorld(sx, sy);
-      const node = getNodeAt(world.x, world.y);
-
+      const node = getNodeAt(sx, sy);
       if (node) {
         isDragging.current = true;
         dragNode.current = node;
         setSelectedNode(node);
         storeSelectNode(node as GraphNode);
       } else {
-        // Start panning
-        isPanningRef.current = true;
-        panStartRef.current = { x: sx, y: sy };
-        panDistRef.current = 0;
+        // Start panning when clicking empty space
+        isPanning.current = true;
+        panStart.current = { x: sx, y: sy };
         if (canvasRef.current) canvasRef.current.style.cursor = "grabbing";
+        setSelectedNode(null);
+        storeSelectNode(null);
       }
     },
-    [getNodeAt, storeSelectNode, screenToWorld]
+    [getNodeAt, storeSelectNode]
   );
 
   const handleMouseUp = useCallback(() => {
-    // If it was a click (not a real pan), deselect
-    if (isPanningRef.current && panDistRef.current < 3) {
-      setSelectedNode(null);
-      storeSelectNode(null);
+    const released = dragNode.current;
+    if (released) {
+      const releaseId = released.id;
+      setNodes((prev) =>
+        prev.map((n) => (n.id === releaseId ? { ...n, fx: undefined, fy: undefined } : n))
+      );
     }
-    // Dragged nodes stay pinned — do NOT clear fx/fy
     isDragging.current = false;
     dragNode.current = null;
-    isPanningRef.current = false;
+    isPanning.current = false;
     if (canvasRef.current) canvasRef.current.style.cursor = "default";
-  }, [storeSelectNode]);
+  }, []);
 
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const rect = canvasRef.current!.getBoundingClientRect();
-      const world = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-      const node = getNodeAt(world.x, world.y);
-      if (node && node.fx !== undefined) {
-        setNodes((prev) =>
-          prev.map((n) => (n.id === node.id ? { ...n, fx: undefined, fy: undefined } : n))
-        );
-      }
-    },
-    [getNodeAt, screenToWorld]
-  );
+  // Zoom with mouse wheel — use native listener to avoid passive event issue
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent): void => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
 
-  // ─── Zoom controls ───────────────────────────────────────
+      const cam = cameraRef.current;
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      const newScale = Math.max(0.2, Math.min(5, cam.scale * zoomFactor));
+
+      cam.x = mx - ((mx - cam.x) / cam.scale) * newScale;
+      cam.y = my - ((my - cam.y) / cam.scale) * newScale;
+      cam.scale = newScale;
+      setZoom(newScale);
+      draw();
+    };
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
+  }, [draw]);
 
   const handleZoomIn = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const cam = cameraRef.current;
     const cx = canvas.offsetWidth / 2;
     const cy = canvas.offsetHeight / 2;
-    const old = zoomRef.current;
-    const nz = Math.min(3, old * 1.3);
-    panRef.current = {
-      x: cx - (cx - panRef.current.x) * (nz / old),
-      y: cy - (cy - panRef.current.y) * (nz / old),
-    };
-    zoomRef.current = nz;
-  }, []);
+    const newScale = Math.min(5, cam.scale * 1.3);
+    cam.x = cx - ((cx - cam.x) / cam.scale) * newScale;
+    cam.y = cy - ((cy - cam.y) / cam.scale) * newScale;
+    cam.scale = newScale;
+    setZoom(newScale);
+    draw();
+  }, [draw]);
 
   const handleZoomOut = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const cam = cameraRef.current;
     const cx = canvas.offsetWidth / 2;
     const cy = canvas.offsetHeight / 2;
-    const old = zoomRef.current;
-    const nz = Math.max(0.15, old * 0.7);
-    panRef.current = {
-      x: cx - (cx - panRef.current.x) * (nz / old),
-      y: cy - (cy - panRef.current.y) * (nz / old),
-    };
-    zoomRef.current = nz;
-  }, []);
+    const newScale = Math.max(0.2, cam.scale / 1.3);
+    cam.x = cx - ((cx - cam.x) / cam.scale) * newScale;
+    cam.y = cy - ((cy - cam.y) / cam.scale) * newScale;
+    cam.scale = newScale;
+    setZoom(newScale);
+    draw();
+  }, [draw]);
 
-  const handleUnpinAll = useCallback(() => {
-    setNodes((prev) => prev.map((n) => ({ ...n, fx: undefined, fy: undefined })));
-  }, []);
+  const handleResetZoom = useCallback(() => {
+    cameraRef.current = { x: 0, y: 0, scale: 1 };
+    setZoom(1);
+    draw();
+  }, [draw]);
 
   // ─── Filter buttons ───────────────────────────────────────
 
@@ -781,41 +669,31 @@ export default function ForceGraph(): React.ReactElement {
         </div>
       </div>
 
-      {/* Zoom & pin controls */}
-      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1.5 items-end">
-        <div className="flex gap-1.5">
-          <button
-            onClick={handleZoomOut}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm border transition-all hover:border-sky-500/50 hover:text-sky-400"
-            style={{ background: "rgba(11,17,32,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#94a3b8", backdropFilter: "blur(8px)" }}
-            title="Zoom out"
-          >
-            −
-          </button>
-          <button
-            onClick={handleZoomIn}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-sm border transition-all hover:border-sky-500/50 hover:text-sky-400"
-            style={{ background: "rgba(11,17,32,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#94a3b8", backdropFilter: "blur(8px)" }}
-            title="Zoom in"
-          >
-            +
-          </button>
-        </div>
+      {/* Zoom controls */}
+      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
         <button
-          onClick={fitToScreen}
-          className="px-3 h-8 flex items-center justify-center rounded-lg text-[11px] border transition-all hover:border-sky-500/50 hover:text-sky-400"
-          style={{ background: "rgba(11,17,32,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#94a3b8", backdropFilter: "blur(8px)" }}
-          title="Fit all nodes to screen"
+          onClick={handleZoomIn}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-all hover:bg-white/10"
+          style={{ background: "rgba(11,17,32,0.85)", border: "1px solid rgba(255,255,255,0.1)", color: "#94a3b8" }}
+          title="Zoom in"
         >
-          Fit
+          +
         </button>
         <button
-          onClick={handleUnpinAll}
-          className="px-3 h-8 flex items-center justify-center rounded-lg text-[11px] border transition-all hover:border-sky-500/50 hover:text-sky-400"
-          style={{ background: "rgba(11,17,32,0.85)", borderColor: "rgba(255,255,255,0.1)", color: "#94a3b8", backdropFilter: "blur(8px)" }}
-          title="Unpin all nodes (double-click individual nodes to unpin)"
+          onClick={handleResetZoom}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-mono transition-all hover:bg-white/10"
+          style={{ background: "rgba(11,17,32,0.85)", border: "1px solid rgba(255,255,255,0.1)", color: "#94a3b8" }}
+          title="Reset zoom"
         >
-          Unpin
+          {Math.round(zoom * 100)}%
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-all hover:bg-white/10"
+          style={{ background: "rgba(11,17,32,0.85)", border: "1px solid rgba(255,255,255,0.1)", color: "#94a3b8" }}
+          title="Zoom out"
+        >
+          −
         </button>
       </div>
 
@@ -823,17 +701,15 @@ export default function ForceGraph(): React.ReactElement {
       <canvas
         ref={canvasRef}
         className="flex-1 w-full h-full"
-        style={{ cursor: "grab" }}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onDoubleClick={handleDoubleClick}
       />
 
       {/* Hover tooltip */}
       {hoveredNode && !isDragging.current && (
-        <div className="absolute bottom-16 right-4 z-10 flex flex-col items-end gap-0.5 pointer-events-none">
+        <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-0.5 pointer-events-none">
           <div
             className="px-2.5 py-1.5 rounded-lg text-xs"
             style={{

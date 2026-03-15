@@ -1,10 +1,26 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+interface SpeechRecognitionAPI extends EventTarget {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  continuous: boolean;
+  onresult: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { useGraphStore } from "@/store/graph-store";
 import type { ChatMessage, ChatRequest } from "@/types";
+import { createMoodAnalyzer, type VoiceMood } from "@/lib/voice-mood";
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -20,9 +36,152 @@ export default function ChatPanel(): React.ReactElement {
   const abortRef = useRef<AbortController | null>(null);
   const analysisResult = useGraphStore((s) => s.analysisResult);
 
+  // ─── Voice assistant state ──────────────────────────────
+  const [listening, setListening] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionAPI | null>(null);
+  const pendingVoiceSend = useRef(false);
+  const moodAnalyzerRef = useRef<{ stop: () => VoiceMood } | null>(null);
+  const detectedMoodRef = useRef<VoiceMood>("neutral");
+  const audioStreamRef = useRef<MediaStream | null>(null);
+
+  const speechSupported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+  const synthSupported = typeof window !== "undefined" && "speechSynthesis" in window;
+
+  const toggleListening = useCallback((): void => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+
+    // Request microphone and start mood analysis in parallel with speech recognition
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        // Keep stream alive for mood analysis
+        audioStreamRef.current = stream;
+        moodAnalyzerRef.current = createMoodAnalyzer(stream);
+
+        const recognition: SpeechRecognitionAPI = new SpeechRecognitionCtor();
+        recognition.lang = "en-US";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.continuous = false;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onresult = (event: any): void => {
+          const transcript = event.results?.[0]?.[0]?.transcript ?? "";
+          // Stop mood analysis and capture detected mood
+          if (moodAnalyzerRef.current) {
+            detectedMoodRef.current = moodAnalyzerRef.current.stop();
+            moodAnalyzerRef.current = null;
+          }
+          // Stop audio stream
+          audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+          audioStreamRef.current = null;
+
+          if (transcript) {
+            pendingVoiceSend.current = true;
+            setInput((prev) => (prev ? prev + " " + transcript : transcript));
+          }
+          setListening(false);
+        };
+
+        recognition.onerror = (): void => {
+          moodAnalyzerRef.current?.stop();
+          moodAnalyzerRef.current = null;
+          audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+          audioStreamRef.current = null;
+          setListening(false);
+        };
+
+        recognition.onend = (): void => {
+          setListening(false);
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+        setListening(true);
+      })
+      .catch(() => {
+        // Microphone permission denied or unavailable
+        setListening(false);
+      });
+  }, [listening]);
+
+  const speakMessage = useCallback((id: string, text: string): void => {
+    if (!synthSupported) return;
+    const synth = window.speechSynthesis;
+
+    // If already speaking this message, stop
+    if (speakingId === id) {
+      synth.cancel();
+      setSpeakingId(null);
+      return;
+    }
+
+    // Stop any current speech
+    synth.cancel();
+
+    // Strip markdown formatting for cleaner speech
+    const clean = text
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/`([^`]*)`/g, "$1")
+      .replace(/#{1,6}\s/g, "")
+      .replace(/- /g, ". ");
+
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.onend = (): void => setSpeakingId(null);
+    utterance.onerror = (): void => setSpeakingId(null);
+
+    setSpeakingId(id);
+    synth.speak(utterance);
+  }, [speakingId, synthSupported]);
+
+  // Clean up speech and audio on unmount or panel close
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+      moodAnalyzerRef.current?.stop();
+      moodAnalyzerRef.current = null;
+      audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+      audioStreamRef.current = null;
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      if (synthSupported) {
+        window.speechSynthesis.cancel();
+        setSpeakingId(null);
+      }
+    }
+  }, [open, synthSupported]);
+
   const scrollToBottom = useCallback((): void => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
+
+  useEffect(() => {
+    if (pendingVoiceSend.current && input.trim()) {
+      pendingVoiceSend.current = false;
+      handleSend();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input]);
 
   useEffect(() => {
     scrollToBottom();
@@ -74,7 +233,11 @@ export default function ChatPanel(): React.ReactElement {
       .filter((m) => m.content.length > 0)
       .map((m) => ({ role: m.role, content: m.content }));
 
-    const body: ChatRequest = { message: trimmed, context, history };
+    // Include detected mood if the message was sent via voice
+    const mood = detectedMoodRef.current !== "neutral" ? detectedMoodRef.current : undefined;
+    detectedMoodRef.current = "neutral";
+
+    const body: ChatRequest = { message: trimmed, mood, context, history };
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -270,9 +433,24 @@ export default function ChatPanel(): React.ReactElement {
                         Thinking...
                       </span>
                     ) : (
-                      <span className="whitespace-pre-wrap break-words">
-                        {msg.content}
-                      </span>
+                      <>
+                        <span className="whitespace-pre-wrap break-words">
+                          {msg.content}
+                        </span>
+                        {msg.role === "assistant" && msg.content && synthSupported && (
+                          <button
+                            onClick={() => speakMessage(msg.id, msg.content)}
+                            className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-brand"
+                            aria-label={speakingId === msg.id ? "Stop speaking" : "Read aloud"}
+                          >
+                            {speakingId === msg.id ? (
+                              <><VolumeX className="h-3 w-3" /> Stop</>  
+                            ) : (
+                              <><Volume2 className="h-3 w-3" /> Listen</>  
+                            )}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -288,12 +466,30 @@ export default function ChatPanel(): React.ReactElement {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask about this repo..."
+                  placeholder={listening ? "Listening..." : "Ask about this repo..."}
                   rows={1}
                   maxLength={2000}
                   disabled={streaming}
                   className="flex-1 resize-none rounded-lg bg-secondary/50 border border-glass px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                 />
+                {speechSupported && (
+                  <button
+                    onClick={toggleListening}
+                    disabled={streaming}
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-brand ${
+                      listening
+                        ? "bg-red-500/20 border-red-500/50 text-red-400 animate-pulse"
+                        : "bg-secondary/50 border-glass text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    } disabled:opacity-40 disabled:cursor-not-allowed`}
+                    aria-label={listening ? "Stop listening" : "Voice input"}
+                  >
+                    {listening ? (
+                      <MicOff className="h-4 w-4" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
                 <button
                   onClick={handleSend}
                   disabled={!input.trim() || streaming || !analysisResult}

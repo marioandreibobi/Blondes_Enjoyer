@@ -57,7 +57,15 @@ ${risksSummary || "None identified."}
 - If asked about a file not in the graph, say so honestly.
 - Keep answers concise but informative. Use bullet points for lists.
 - If the user asks about code patterns, architecture decisions, or potential issues, use the graph structure and risk data to inform your answer.
-- Do not make up information that isn't supported by the data above.`;
+- Do not make up information that isn't supported by the data above.
+${mood && mood !== "neutral" ? `
+## User Mood (detected from voice tone)
+The user's current mood appears to be: **${mood}**.
+Adapt your tone accordingly:
+- If "excited" or "happy": match their energy, be enthusiastic and encouraging.
+- If "frustrated": be extra patient, empathetic, and clear. Acknowledge difficulty.
+- If "calm": be measured and thorough in your explanations.
+` : ""}`;
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -71,7 +79,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     const body: ChatRequest = await request.json();
-    const { message, context, history } = body;
+    const { message, mood, context, history } = body;
 
     if (!message || typeof message !== "string" || message.trim().length === 0) {
       return Response.json({ error: "Message is required" }, { status: 400 });

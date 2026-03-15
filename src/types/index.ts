@@ -103,6 +103,7 @@ export interface ChatMessage {
 
 export interface ChatRequest {
   message: string;
+  mood?: "neutral" | "excited" | "calm" | "frustrated" | "happy";
   context: {
     repo: RepoInfo;
     nodes: Array<{ id: string; type: string; lines: number; complexity: string; description: string; risk: string | null }>;
