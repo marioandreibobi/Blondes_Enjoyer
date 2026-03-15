@@ -60,3 +60,16 @@ model PendingVerification {
   @@index([email])
   @@index([code])
 }
+
+model Feedback {
+  id        String   @id @default(cuid())
+  category  String
+  rating    Int
+  message   String
+  email     String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([category])
+  @@index([createdAt])
+}
