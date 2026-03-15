@@ -29,7 +29,7 @@ export default function ViewSwitcher({ value, onSwitch, onExport }: ViewSwitcher
           style={value === "diagram" ? ACTIVE_STYLE : INACTIVE_STYLE}
         >
           <Network className="h-3.5 w-3.5" />
-          City Map
+          Blueprint
         </button>
         <button
           onClick={() => onSwitch("3d")}
