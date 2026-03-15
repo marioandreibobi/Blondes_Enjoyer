@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Loader2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { useGraphStore } from "@/store/graph-store";
 import type { ChatMessage, ChatRequest } from "@/types";
+import { createMoodAnalyzer, type VoiceMood } from "@/lib/voice-mood";
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -39,6 +40,10 @@ export default function ChatPanel(): React.ReactElement {
   const [listening, setListening] = useState(false);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionAPI | null>(null);
+  const pendingVoiceSend = useRef(false);
+  const moodAnalyzerRef = useRef<{ stop: () => VoiceMood } | null>(null);
+  const detectedMoodRef = useRef<VoiceMood>("neutral");
+  const audioStreamRef = useRef<MediaStream | null>(null);
 
   const speechSupported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
   const synthSupported = typeof window !== "undefined" && "speechSynthesis" in window;
@@ -54,12 +59,13 @@ export default function ChatPanel(): React.ReactElement {
     const SpeechRecognitionCtor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) return;
 
-    // Explicitly request microphone permission first to trigger browser prompt
+    // Request microphone and start mood analysis in parallel with speech recognition
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
-        // Stop the stream immediately — we just needed the permission
-        stream.getTracks().forEach((t) => t.stop());
+        // Keep stream alive for mood analysis
+        audioStreamRef.current = stream;
+        moodAnalyzerRef.current = createMoodAnalyzer(stream);
 
         const recognition: SpeechRecognitionAPI = new SpeechRecognitionCtor();
         recognition.lang = "en-US";
@@ -70,13 +76,27 @@ export default function ChatPanel(): React.ReactElement {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         recognition.onresult = (event: any): void => {
           const transcript = event.results?.[0]?.[0]?.transcript ?? "";
+          // Stop mood analysis and capture detected mood
+          if (moodAnalyzerRef.current) {
+            detectedMoodRef.current = moodAnalyzerRef.current.stop();
+            moodAnalyzerRef.current = null;
+          }
+          // Stop audio stream
+          audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+          audioStreamRef.current = null;
+
           if (transcript) {
+            pendingVoiceSend.current = true;
             setInput((prev) => (prev ? prev + " " + transcript : transcript));
           }
           setListening(false);
         };
 
         recognition.onerror = (): void => {
+          moodAnalyzerRef.current?.stop();
+          moodAnalyzerRef.current = null;
+          audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+          audioStreamRef.current = null;
           setListening(false);
         };
 
@@ -126,10 +146,14 @@ export default function ChatPanel(): React.ReactElement {
     synth.speak(utterance);
   }, [speakingId, synthSupported]);
 
-  // Clean up speech on unmount or panel close
+  // Clean up speech and audio on unmount or panel close
   useEffect(() => {
     return () => {
       recognitionRef.current?.stop();
+      moodAnalyzerRef.current?.stop();
+      moodAnalyzerRef.current = null;
+      audioStreamRef.current?.getTracks().forEach((t) => t.stop());
+      audioStreamRef.current = null;
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
@@ -150,6 +174,14 @@ export default function ChatPanel(): React.ReactElement {
   const scrollToBottom = useCallback((): void => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
+
+  useEffect(() => {
+    if (pendingVoiceSend.current && input.trim()) {
+      pendingVoiceSend.current = false;
+      handleSend();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input]);
 
   useEffect(() => {
     scrollToBottom();
@@ -201,7 +233,11 @@ export default function ChatPanel(): React.ReactElement {
       .filter((m) => m.content.length > 0)
       .map((m) => ({ role: m.role, content: m.content }));
 
-    const body: ChatRequest = { message: trimmed, context, history };
+    // Include detected mood if the message was sent via voice
+    const mood = detectedMoodRef.current !== "neutral" ? detectedMoodRef.current : undefined;
+    detectedMoodRef.current = "neutral";
+
+    const body: ChatRequest = { message: trimmed, mood, context, history };
 
     const controller = new AbortController();
     abortRef.current = controller;
