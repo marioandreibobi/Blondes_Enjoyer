@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { generateVerificationCode, sendVerificationEmail } from "@/lib/email";
+import bcrypt from "bcryptjs";
 
 interface SendCodeBody {
   email: string;
@@ -90,14 +91,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const code = generateVerificationCode();
     const passwordHash = await hashPassword(password);
+    const codeHash = await bcrypt.hash(code, 10);
 
-    // Store pending verification
+    // Store pending verification (code stored as hash)
     await prisma.pendingVerification.create({
       data: {
         email: trimmedEmail,
         name: trimmedName,
         passwordHash,
-        code,
+        code: codeHash,
         expiresAt: new Date(Date.now() + CODE_EXPIRY_MS),
       },
     });

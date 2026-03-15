@@ -4,6 +4,7 @@ import {
   createSession,
   setSessionCookie,
 } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 interface SignupBody {
   email: string;
@@ -56,7 +57,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (pending.code !== trimmedCode) {
+    const codeMatch = await bcrypt.compare(trimmedCode, pending.code);
+    if (!codeMatch) {
       await prisma.pendingVerification.update({
         where: { id: pending.id },
         data: { attempts: { increment: 1 } },
