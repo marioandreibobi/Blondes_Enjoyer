@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Box, Network, Download } from "lucide-react";
+import { Map, Network, Download } from "lucide-react";
 
 type ViewMode = "3d" | "diagram";
 
@@ -36,8 +36,8 @@ export default function ViewSwitcher({ value, onSwitch, onExport }: ViewSwitcher
           className={BTN_BASE}
           style={value === "3d" ? ACTIVE_STYLE : INACTIVE_STYLE}
         >
-          <Box className="h-3.5 w-3.5" />
-          Force Graph
+          <Map className="h-3.5 w-3.5" />
+          City Map
         </button>
       </div>
       {onExport && (
