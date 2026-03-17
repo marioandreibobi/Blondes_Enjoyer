@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles, Check, Brain, ShieldCheck } from "lucide-react";
 import { useGraphStore } from "@/store/graph-store";
-import ForceGraph from "@/components/Graph/ForceGraph";
+import MapView from "@/components/Graph/MapView/MapView";
 import DiagramView from "@/components/Graph/DiagramView";
 import ViewSwitcher from "@/components/UI/ViewSwitcher";
 import AnalysisPanel from "@/components/UI/AnalysisPanel";
@@ -429,7 +429,7 @@ export default function AnalyzePage(): React.ReactElement {
             {activeView === "diagram" ? (
               <DiagramView />
             ) : (
-              <ForceGraph />
+              <MapView />
             )}
           </div>
 
