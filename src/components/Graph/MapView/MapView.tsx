@@ -204,7 +204,7 @@ export default function MapView() {
         // Risk indicator dot
         if (b.node.risk && b.node.risk !== "low") {
           const dotRadius = Math.max(2, 3 / scale);
-          ctx.fillStyle = RISK_COLORS[b.node.risk] ?? "#22c55e";
+          ctx.fillStyle = RISK_COLORS[b.node.risk as keyof typeof RISK_COLORS] ?? "#22c55e";
           ctx.beginPath();
           ctx.arc(b.x + b.width - dotRadius - 2 / scale, b.y + dotRadius + 2 / scale, dotRadius, 0, Math.PI * 2);
           ctx.fill();

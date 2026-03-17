@@ -13,6 +13,7 @@ export type NodeType =
 
 export type Complexity = "low" | "medium" | "high";
 export type Severity = "low" | "medium" | "high";
+export type RiskLevel = "low" | "medium" | "high" | "critical";
 
 export interface GraphNode {
   id: string; // file path
@@ -110,6 +111,7 @@ export interface ChatRequest {
     links: Array<{ source: string; target: string }>;
     aiSummary: string;
     riskHotspots: RiskHotspot[];
+    fileContent?: { path: string; content: string };
   };
   history: Array<{ role: "user" | "assistant"; content: string }>;
 }
