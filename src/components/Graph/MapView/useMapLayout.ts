@@ -14,7 +14,6 @@ export interface MapSector {
   height: number;
   totalLines: number;
   fileCount: number;
-  colors: { bg: string; border: string; text: string; dot: string };
 }
 
 export interface MapBuilding {
@@ -294,7 +293,6 @@ export function useMapLayout(
     for (const rect of sectorRects) {
       const files = sectorFiles.get(rect.id) ?? [];
       const cat = dominantCategory(files);
-      const colors = NODE_COLORS[cat];
 
       sectors.push({
         id: rect.id,
@@ -306,7 +304,6 @@ export function useMapLayout(
         height: rect.h,
         totalLines: files.reduce((s, f) => s + f.lines, 0),
         fileCount: files.length,
-        colors,
       });
 
       const buildings = layoutBuildings(files, rect.x, rect.y, rect.w, rect.h, rect.id);

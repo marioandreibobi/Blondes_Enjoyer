@@ -80,10 +80,12 @@ export default function MapView() {
     const dpr = window.devicePixelRatio || 1;
     const cw = container.clientWidth;
     const ch = container.clientHeight;
-    canvas.width = cw * dpr;
-    canvas.height = ch * dpr;
-    canvas.style.width = `${cw}px`;
-    canvas.style.height = `${ch}px`;
+    if (canvas.width !== cw * dpr || canvas.height !== ch * dpr) {
+      canvas.width = cw * dpr;
+      canvas.height = ch * dpr;
+      canvas.style.width = `${cw}px`;
+      canvas.style.height = `${ch}px`;
+    }
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
