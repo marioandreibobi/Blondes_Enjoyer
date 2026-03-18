@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Map, Network, Download } from "lucide-react";
+import { Map, Network, Download, Folders } from "lucide-react";
 
-type ViewMode = "3d" | "diagram";
+type ViewMode = "3d" | "diagram" | "explorer";
 
 interface ViewSwitcherProps {
   value: ViewMode;
@@ -38,6 +38,14 @@ export default function ViewSwitcher({ value, onSwitch, onExport }: ViewSwitcher
         >
           <Map className="h-3.5 w-3.5" />
           City Map
+        </button>
+        <button
+          onClick={() => onSwitch("explorer")}
+          className={BTN_BASE}
+          style={value === "explorer" ? ACTIVE_STYLE : INACTIVE_STYLE}
+        >
+          <Folders className="h-3.5 w-3.5" />
+          Explorer
         </button>
       </div>
       {onExport && (

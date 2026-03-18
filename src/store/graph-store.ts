@@ -19,7 +19,7 @@ interface GraphState {
   complexityFilter: "all" | "low" | "medium" | "high";
 
   // UI
-  activeView: "3d" | "diagram";
+  activeView: "3d" | "diagram" | "explorer";
   activeCategory: string | null;
   sidebarOpen: boolean;
   loading: boolean;
@@ -30,7 +30,7 @@ interface GraphState {
   setAnalysisResultB: (result: AnalysisResult | null) => void;
   setDualMode: (enabled: boolean) => void;
   setChosenApproach: (approach: "A" | "B") => void;
-  setActiveView: (view: "3d" | "diagram") => void;
+  setActiveView: (view: "3d" | "diagram" | "explorer") => void;
   setActiveCategory: (category: string | null) => void;
   selectNode: (node: GraphNode | null) => void;
   hoverNode: (node: GraphNode | null) => void;
@@ -52,7 +52,7 @@ const initialState = {
   hoveredNode: null,
   typeFilters: new Set<NodeType>(),
   complexityFilter: "all" as const,
-  activeView: "3d" as const,
+  activeView: "3d" as "3d" | "diagram" | "explorer",
   activeCategory: null as string | null,
   sidebarOpen: true,
   loading: false,

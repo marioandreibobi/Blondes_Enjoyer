@@ -11,8 +11,8 @@ const nextConfig = {
   },
   async headers() {
     const scriptSrc = isDev
-      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com"
-      : "script-src 'self' 'unsafe-inline' https://js.stripe.com";
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com"
+      : "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com";
     return [
       {
         source: "/(.*)",
@@ -25,7 +25,7 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://api.stripe.com https://api.featherless.ai https://raw.githubusercontent.com; frame-src https://js.stripe.com https://checkout.stripe.com; form-action 'self'; base-uri 'self'; object-src 'none';`,
+            value: `default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://raw.githubusercontent.com https://*.basemaps.cartocdn.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.stripe.com https://api.featherless.ai https://raw.githubusercontent.com https://*.googleapis.com; frame-src https://js.stripe.com https://checkout.stripe.com; form-action 'self'; base-uri 'self'; object-src 'none';`,
           },
         ],
       },

@@ -7,6 +7,7 @@ import { Sparkles, Check, Brain, ShieldCheck } from "lucide-react";
 import { useGraphStore } from "@/store/graph-store";
 import MapView from "@/components/Graph/MapView/MapView";
 import DiagramView from "@/components/Graph/DiagramView";
+import ExplorerView from "@/components/Graph/ExplorerView/ExplorerView";
 import ViewSwitcher from "@/components/UI/ViewSwitcher";
 import AnalysisPanel from "@/components/UI/AnalysisPanel";
 import LoadingState from "@/components/UI/LoadingState";
@@ -428,6 +429,8 @@ export default function AnalyzePage(): React.ReactElement {
           <div className="flex-1 relative overflow-hidden">
             {activeView === "diagram" ? (
               <DiagramView />
+            ) : activeView === "explorer" ? (
+              <ExplorerView />
             ) : (
               <MapView />
             )}

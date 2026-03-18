@@ -29,7 +29,7 @@ export default function HeroSection(): React.ReactElement {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<"3d" | "diagram">("3d");
+  const [view, setView] = useState<"3d" | "diagram" | "explorer">("3d");
   const { dualMode, setDualMode } = useGraphStore();
   const router = useRouter();
 

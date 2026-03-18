@@ -5,25 +5,31 @@ import { getCategory, NODE_COLORS, STORE_CATEGORY_MAP, type CategoryType } from 
 // ─── Public types ─────────────────────────────────────────
 
 export interface MapSector {
-  id: string;            // directory path (e.g., "src/app")
-  label: string;         // display name
+  id: string;
+  label: string;        // short folder name
+  streetName: string;   // full Romanian street name
   category: CategoryType;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  gridCol: number;
+  gridRow: number;
+  cx: number;           // card centre x (world)
+  cy: number;           // card centre y (world)
+  cardW: number;
+  cardH: number;
+  // compat rectangle (= card bounding box)
+  x: number; y: number; width: number; height: number;
+  radius: number;
   totalLines: number;
   fileCount: number;
 }
 
 export interface MapBuilding {
-  id: string;            // file path
+  id: string;
   node: GraphNode;
   sectorId: string;
-  x: number;
+  x: number;       // absolute world centre of the file square
   y: number;
-  width: number;
-  height: number;
+  width: number;   // file-square width  (world units)
+  height: number;  // file-square height (world units, fixed = FILE_H)
   color: string;
   category: CategoryType;
 }
@@ -37,23 +43,35 @@ export interface MapLayoutResult {
   sectors: MapSector[];
   buildings: MapBuilding[];
   edges: MapEdge[];
+  gridCols: number;
+  gridRows: number;
+  cellW: number;
+  cellH: number;
+  roadW: number;
+  mapMargin: number;
   totalWidth: number;
   totalHeight: number;
 }
 
-// ─── Helpers ──────────────────────────────────────────────
+// ─── Layout constants ─────────────────────────────────────
 
-const SECTOR_PADDING = 30;
-const SECTOR_HEADER = 28;
-const BUILDING_GAP = 4;
-const MIN_BUILDING_SIZE = 12;
-const MAX_BUILDING_SIZE = 60;
-const STREET_WIDTH = 8;
+const ROAD_W   = 72;  // white road band width
+const BLOCK_W  = 285; // gray city-block width
+const BLOCK_H  = 228; // gray city-block height
+const MARGIN   = 88;  // outer margin (also road-like)
+export const CELL_W = BLOCK_W + ROAD_W;  // 357
+export const CELL_H = BLOCK_H + ROAD_W;  // 300
+
+const CARD_PAD  = 14; // card inner padding
+const HEADER_H  = 40; // card header (name + file count)
+const FILE_H    = 18; // file square height (fixed)
+const FILE_GAP  = 4;  // gap between squares
+
+// ─── Helpers ──────────────────────────────────────────────
 
 function matchesCategory(node: GraphNode, activeCategory: string | null): boolean {
   if (!activeCategory) return true;
-  const cat = getCategory(node.type);
-  return STORE_CATEGORY_MAP[activeCategory]?.includes(cat) ?? true;
+  return STORE_CATEGORY_MAP[activeCategory]?.includes(getCategory(node.type)) ?? true;
 }
 
 function filterNodes(
@@ -70,17 +88,13 @@ function filterNodes(
   });
 }
 
-/** Get the top-level directory for grouping (first 2 path segments or root) */
 function getSectorPath(filePath: string): string {
   const parts = filePath.split("/");
-  // For paths like "src/app/api/route.ts" → "src/app"
-  // For paths like "next.config.js" → "(root)"
   if (parts.length <= 1) return "(root)";
   if (parts.length === 2) return parts[0];
   return `${parts[0]}/${parts[1]}`;
 }
 
-/** Determine the dominant category for a sector based on its files */
 function dominantCategory(files: GraphNode[]): CategoryType {
   const counts = new Map<CategoryType, number>();
   for (const f of files) {
@@ -90,144 +104,72 @@ function dominantCategory(files: GraphNode[]): CategoryType {
   let best: CategoryType = "core";
   let bestCount = 0;
   for (const [cat, count] of counts) {
-    if (count > bestCount) {
-      best = cat;
-      bestCount = count;
-    }
+    if (count > bestCount) { best = cat; bestCount = count; }
   }
   return best;
 }
 
-/** Compute building size from lines of code */
-function buildingSize(lines: number): number {
-  const s = MIN_BUILDING_SIZE + Math.sqrt(lines) * 1.5;
-  return Math.max(MIN_BUILDING_SIZE, Math.min(MAX_BUILDING_SIZE, s));
+/** Romanian street prefix based on file count */
+function streetName(folderLabel: string, fileCount: number): string {
+  const n = folderLabel.toUpperCase().replace(/[/_\-]/g, " ").replace(/\s+/g, " ").trim();
+  if (fileCount >= 12) return `BULEVARDUL ${n}`;
+  if (fileCount >= 7)  return `STRADA ${n}`;
+  if (fileCount >= 4)  return `CALEA ${n}`;
+  if (fileCount >= 2)  return `ALEEA ${n}`;
+  return `PIATA ${n}`;
 }
 
-/** Simple squarified treemap layout for sectors */
-function treemapLayout(
-  sectors: Array<{ id: string; weight: number }>,
-  containerWidth: number,
-  containerHeight: number,
-): Array<{ id: string; x: number; y: number; w: number; h: number }> {
-  if (sectors.length === 0) return [];
+/** File square width proportional to lines of code */
+function fileSquareW(lines: number): number {
+  return Math.max(14, Math.min(38, Math.sqrt(lines) * 1.8 + 10));
+}
 
-  const totalWeight = sectors.reduce((s, sec) => s + sec.weight, 0);
-  if (totalWeight === 0) return sectors.map((s) => ({ id: s.id, x: 0, y: 0, w: 50, h: 50 }));
+/** How many grid columns to use given N sectors */
+function computeCols(n: number): number {
+  if (n <= 2)  return 2;
+  if (n <= 6)  return 2;
+  if (n <= 12) return 3;
+  return 4;
+}
 
-  // Sort by weight descending for better aspect ratios
-  const sorted = [...sectors].sort((a, b) => b.weight - a.weight);
+interface FileLayout {
+  file: GraphNode;
+  lx: number; // local x (from card content top-left)
+  ly: number; // local y
+  fw: number;
+}
 
-  const results: Array<{ id: string; x: number; y: number; w: number; h: number }> = [];
-
-  function layoutSlice(
-    items: Array<{ id: string; weight: number }>,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    sumWeight: number,
-  ) {
-    if (items.length === 0) return;
-    if (items.length === 1) {
-      results.push({ id: items[0].id, x, y, w, h });
-      return;
-    }
-
-    // Split into two groups for better aspect ratios
-    const horizontal = w >= h;
-    let accum = 0;
-    let splitIdx = 0;
-
-    for (let i = 0; i < items.length; i++) {
-      accum += items[i].weight;
-      if (accum >= sumWeight / 2) {
-        splitIdx = i + 1;
-        break;
-      }
-    }
-    splitIdx = Math.max(1, Math.min(items.length - 1, splitIdx));
-
-    const group1 = items.slice(0, splitIdx);
-    const group2 = items.slice(splitIdx);
-    const w1 = group1.reduce((s, it) => s + it.weight, 0);
-    const w2 = group2.reduce((s, it) => s + it.weight, 0);
-    const ratio = w1 / (w1 + w2);
-
-    if (horizontal) {
-      const splitX = w * ratio;
-      layoutSlice(group1, x, y, splitX - STREET_WIDTH / 2, h, w1);
-      layoutSlice(group2, x + splitX + STREET_WIDTH / 2, y, w - splitX - STREET_WIDTH / 2, h, w2);
-    } else {
-      const splitY = h * ratio;
-      layoutSlice(group1, x, y, w, splitY - STREET_WIDTH / 2, w1);
-      layoutSlice(group2, x, y + splitY + STREET_WIDTH / 2, w, h - splitY - STREET_WIDTH / 2, w2);
-    }
+/** Compute card dimensions and file-square layout within the card */
+function computeCardLayout(
+  files: GraphNode[],
+  maxCardW: number,
+): { cardW: number; cardH: number; fileLayouts: FileLayout[] } {
+  if (files.length === 0) {
+    return { cardW: 120, cardH: HEADER_H + CARD_PAD, fileLayouts: [] };
   }
 
-  layoutSlice(sorted, 0, 0, containerWidth, containerHeight, totalWeight);
-  return results;
-}
-
-/** Layout buildings within a sector in a grid */
-function layoutBuildings(
-  files: GraphNode[],
-  sectorX: number,
-  sectorY: number,
-  sectorW: number,
-  sectorH: number,
-  sectorId: string,
-): MapBuilding[] {
-  const innerX = sectorX + SECTOR_PADDING;
-  const innerY = sectorY + SECTOR_PADDING + SECTOR_HEADER;
-  const innerW = sectorW - SECTOR_PADDING * 2;
-  const innerH = sectorH - SECTOR_PADDING * 2 - SECTOR_HEADER;
-
-  if (innerW <= 0 || innerH <= 0 || files.length === 0) return [];
-
-  // Sort files by lines descending (big buildings first)
+  const maxContentW = maxCardW - CARD_PAD * 2;
   const sorted = [...files].sort((a, b) => b.lines - a.lines);
 
-  const buildings: MapBuilding[] = [];
-  let curX = innerX;
-  let curY = innerY;
-  let rowHeight = 0;
+  const fileLayouts: FileLayout[] = [];
+  let curX = 0, curY = 0, usedW = 0;
 
   for (const file of sorted) {
-    const size = buildingSize(file.lines);
-    const bw = size;
-    const bh = size * 0.75; // Slightly rectangular
-
-    // Wrap to next row
-    if (curX + bw > innerX + innerW) {
-      curX = innerX;
-      curY += rowHeight + BUILDING_GAP;
-      rowHeight = 0;
+    const fw = fileSquareW(file.lines);
+    if (curX + fw > maxContentW && curX > 0) {
+      curX = 0;
+      curY += FILE_H + FILE_GAP;
     }
-
-    // Overflow vertically — just keep placing (will be clipped)
-    if (curY + bh > innerY + innerH && buildings.length > 0) {
-      // Still place it, it'll be visible when zoomed in
-    }
-
-    const cat = getCategory(file.type);
-    buildings.push({
-      id: file.id,
-      node: file,
-      sectorId,
-      x: curX,
-      y: curY,
-      width: bw,
-      height: bh,
-      color: NODE_COLORS[cat].dot,
-      category: cat,
-    });
-
-    curX += bw + BUILDING_GAP;
-    rowHeight = Math.max(rowHeight, bh);
+    fileLayouts.push({ file, lx: curX + fw / 2, ly: curY + FILE_H / 2, fw });
+    curX += fw + FILE_GAP;
+    usedW = Math.max(usedW, curX - FILE_GAP);
   }
 
-  return buildings;
+  const contentH = curY + FILE_H;
+  const cardW = Math.max(100, Math.min(maxCardW, usedW + CARD_PAD * 2));
+  const cardH = HEADER_H + contentH + CARD_PAD;
+
+  return { cardW, cardH, fileLayouts };
 }
 
 // ─── Hook ─────────────────────────────────────────────────
@@ -240,88 +182,130 @@ export function useMapLayout(
   activeCategory: string | null,
 ): MapLayoutResult {
   return useMemo(() => {
-    if (!nodes || !links) {
-      return { sectors: [], buildings: [], edges: [], totalWidth: 0, totalHeight: 0 };
-    }
+    const empty: MapLayoutResult = {
+      sectors: [], buildings: [], edges: [],
+      gridCols: 0, gridRows: 0,
+      cellW: CELL_W, cellH: CELL_H, roadW: ROAD_W, mapMargin: MARGIN,
+      totalWidth: 0, totalHeight: 0,
+    };
+
+    if (!nodes || !links) return empty;
 
     const filtered = filterNodes(nodes, typeFilters, complexityFilter, activeCategory);
-    if (filtered.length === 0) {
-      return { sectors: [], buildings: [], edges: [], totalWidth: 0, totalHeight: 0 };
-    }
+    if (filtered.length === 0) return empty;
 
-    // Group files by sector (top-level directory)
+    // Group into sectors
     const sectorFiles = new Map<string, GraphNode[]>();
+    const rootFiles: GraphNode[] = [];
     for (const node of filtered) {
-      const sectorId = getSectorPath(node.id);
-      const arr = sectorFiles.get(sectorId) ?? [];
-      arr.push(node);
-      sectorFiles.set(sectorId, arr);
+      const sid = getSectorPath(node.id);
+      if (sid === "(root)") {
+        rootFiles.push(node);
+      } else {
+        const arr = sectorFiles.get(sid) ?? [];
+        arr.push(node);
+        sectorFiles.set(sid, arr);
+      }
     }
 
-    // Compute sector weights (total lines)
-    const sectorWeights = Array.from(sectorFiles.entries()).map(([id, files]) => ({
-      id,
-      weight: files.reduce((s, f) => s + f.lines, 0),
-    }));
+    // Sort sectors: most files first
+    const sorted = Array.from(sectorFiles.entries())
+      .sort((a, b) => b[1].length - a[1].length);
 
-    // Find sector containing the most-imported file → place it first in the treemap
-    // so it lands roughly in the center of the bisection split
-    const maxImportedBy = Math.max(0, ...filtered.map((n) => n.importedBy));
-    const centerFile = filtered.find((n) => n.importedBy === maxImportedBy);
-    const centerSectorId = centerFile ? getSectorPath(centerFile.id) : null;
+    const n       = sorted.length;
+    const cols    = computeCols(n);
+    const rows    = Math.ceil(n / cols);
 
-    const prioritizedWeights = centerSectorId
-      ? [
-          ...sectorWeights.filter((s) => s.id === centerSectorId),
-          ...sectorWeights.filter((s) => s.id !== centerSectorId),
-        ]
-      : sectorWeights;
+    const maxCardW = BLOCK_W - 30;
 
-    // Compute total map size based on file count
-    const totalLines = sectorWeights.reduce((s, sw) => s + sw.weight, 0);
-    const scaleFactor = Math.max(1, Math.sqrt(totalLines / 500));
-    const mapW = 600 * scaleFactor;
-    const mapH = 450 * scaleFactor;
-
-    // Layout sectors with treemap
-    const sectorRects = treemapLayout(prioritizedWeights, mapW, mapH);
-
-    // Build sectors + buildings
-    const sectors: MapSector[] = [];
+    const sectors: MapSector[]  = [];
     const allBuildings: MapBuilding[] = [];
 
-    for (const rect of sectorRects) {
-      const files = sectorFiles.get(rect.id) ?? [];
-      const cat = dominantCategory(files);
+    sorted.forEach(([sid, files], idx) => {
+      const col = idx % cols;
+      const row = Math.floor(idx / cols);
+      const cat  = dominantCategory(files);
+      const label = sid.split("/").pop() ?? sid;
+
+      // Card centre in world space
+      const cx = MARGIN + ROAD_W + col * CELL_W + BLOCK_W / 2;
+      const cy = MARGIN + ROAD_W + row * CELL_H + BLOCK_H / 2;
+
+      const { cardW, cardH, fileLayouts } = computeCardLayout(files, maxCardW);
+
+      // Card top-left
+      const cardX = cx - cardW / 2;
+      const cardY = cy - cardH / 2;
+      // File content start
+      const contentX = cardX + CARD_PAD;
+      const contentY = cardY + HEADER_H;
 
       sectors.push({
-        id: rect.id,
-        label: rect.id,
+        id: sid,
+        label,
+        streetName: streetName(label, files.length),
         category: cat,
-        x: rect.x,
-        y: rect.y,
-        width: rect.w,
-        height: rect.h,
+        gridCol: col,
+        gridRow: row,
+        cx, cy,
+        cardW, cardH,
+        x: cardX, y: cardY, width: cardW, height: cardH,
+        radius: Math.max(cardW, cardH) / 2,
         totalLines: files.reduce((s, f) => s + f.lines, 0),
         fileCount: files.length,
       });
 
-      const buildings = layoutBuildings(files, rect.x, rect.y, rect.w, rect.h, rect.id);
-      allBuildings.push(...buildings);
-    }
+      for (const { file, lx, ly, fw } of fileLayouts) {
+        const bcat = getCategory(file.type);
+        allBuildings.push({
+          id: file.id,
+          node: file,
+          sectorId: sid,
+          x: contentX + lx,
+          y: contentY + ly,
+          width: fw,
+          height: FILE_H,
+          color: NODE_COLORS[bcat].dot,
+          category: bcat,
+        });
+      }
+    });
 
-    // Build edge list
-    const idSet = new Set(filtered.map((n) => n.id));
+    // Root (no-folder) files: scatter them in the margin areas
+    rootFiles.forEach((file, i) => {
+      const seed   = i * 37 + 1;
+      const px     = (Math.sin(seed * 1.3) * 0.5 + 0.5) * (MARGIN - 20) + 10;
+      const py     = (Math.sin(seed * 2.7) * 0.5 + 0.5) *
+                     (MARGIN + ROAD_W + rows * CELL_H);
+      const bcat   = getCategory(file.type);
+      const fw     = fileSquareW(file.lines);
+      allBuildings.push({
+        id: file.id,
+        node: file,
+        sectorId: "(root)",
+        x: px,
+        y: py,
+        width: fw,
+        height: FILE_H,
+        color: NODE_COLORS[bcat].dot,
+        category: bcat,
+      });
+    });
+
+    // Edges
+    const idSet  = new Set(filtered.map((n) => n.id));
     const edges: MapEdge[] = links
       .filter((l) => idSet.has(l.source) && idSet.has(l.target))
       .map((l) => ({ sourceId: l.source, targetId: l.target }));
 
+    const totalWidth  = MARGIN * 2 + ROAD_W + cols * CELL_W;
+    const totalHeight = MARGIN * 2 + ROAD_W + rows * CELL_H;
+
     return {
-      sectors,
-      buildings: allBuildings,
-      edges,
-      totalWidth: mapW,
-      totalHeight: mapH,
+      sectors, buildings: allBuildings, edges,
+      gridCols: cols, gridRows: rows,
+      cellW: CELL_W, cellH: CELL_H, roadW: ROAD_W, mapMargin: MARGIN,
+      totalWidth, totalHeight,
     };
   }, [nodes, links, typeFilters, complexityFilter, activeCategory]);
 }

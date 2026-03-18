@@ -3,7 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useGraphStore } from "@/store/graph-store";
-import { NODE_TYPES } from "@/components/Graph/ForceGraph";
+import { NODE_TYPES } from "@/lib/graph-constants";
 
 export default function NodeTooltip(): React.ReactElement | null {
   const hoveredNode = useGraphStore((s) => s.hoveredNode);
